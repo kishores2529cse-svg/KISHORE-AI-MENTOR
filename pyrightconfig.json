@@ -1,0 +1,13 @@
+{
+  "include": [
+    "backend"
+  ],
+  "extraPaths": [
+    "backend",
+    "C:/Users/Hp/AppData/Local/Programs/Python/Python312/Lib/site-packages"
+  ],
+  "pythonVersion": "3.12",
+  "pythonPlatform": "Windows",
+  "reportMissingImports": "none",
+  "reportMissingModuleSource": "none"
+}

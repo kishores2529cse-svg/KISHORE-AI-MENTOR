@@ -1,0 +1,11 @@
+{
+  "python.defaultInterpreterPath": "C:\\Users\\Hp\\AppData\\Local\\Programs\\Python\\Python312\\python.exe",
+  "python.analysis.extraPaths": [
+    "c:/Projects/KISHORE-S-AI-MENTOR/backend",
+    "C:/Users/Hp/AppData/Local/Programs/Python/Python312/Lib/site-packages"
+  ],
+  "python.autoComplete.extraPaths": [
+    "c:/Projects/KISHORE-S-AI-MENTOR/backend",
+    "C:/Users/Hp/AppData/Local/Programs/Python/Python312/Lib/site-packages"
+  ]
+}

@@ -1,0 +1,13 @@
+
+    # Computer Networking: Transport Layer Protocols
+
+    [Page 1]
+    Transmission Control Protocol (TCP) is a connection-oriented transport protocol that guarantees reliable delivery of data packets.
+    Before data transfer begins, TCP establishes a virtual connection using the Three-Way Handshake:
+    1. SYN: The client sends a segment with SYN flag set and an initial sequence number (ISN_c).
+    2. SYN-ACK: The server responds with SYN and ACK flags set, acknowledging the client's sequence number and providing its own ISN_s.
+    3. ACK: The client sends an ACK segment confirming the server's sequence number. The connection is now established.
+
+    [Page 2]
+    TCP provides Flow Control via sliding window mechanisms and Congestion Control via AIMD (Additive Increase Multiplicative Decrease).
+    

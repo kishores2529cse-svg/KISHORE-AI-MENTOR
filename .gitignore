@@ -1,0 +1,34 @@
+# Environment variables & API Keys (CRITICAL SECURITY)
+.env
+.env.local
+*.env
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+.venv/
+
+# Database & Uploaded Materials
+*.db
+*.sqlite3
+backend/uploads/*
+!backend/uploads/.gitkeep
+
+# Node & Dependencies
+node_modules/
+frontend/node_modules/
+dist/
+frontend/dist/
+
+# Logs & Temp
+*.log
+scratch/
+.system_generated/
+.idea/
+.DS_Store
