@@ -1,9 +1,11 @@
 import React, { useEffect, useRef, useState } from 'react';
 import * as THREE from 'three';
+import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { Volume2, Sparkles, User, RefreshCw, Eye, Orbit } from 'lucide-react';
 
 interface Avatar3DProps {
   agentState: 'listening' | 'processing' | 'speaking' | 'idle';
+  presetId?: 'kishore' | 'sophia' | 'alex' | 'marcus' | 'cyber_bot' | 'custom';
   audioElementRef?: React.RefObject<HTMLAudioElement | null>;
   spokenText?: string;
   isAudioMuted?: boolean;
@@ -11,6 +13,7 @@ interface Avatar3DProps {
 
 export const Avatar3D: React.FC<Avatar3DProps> = ({
   agentState,
+  presetId = 'kishore',
   spokenText = '',
   isAudioMuted = false
 }) => {
@@ -56,9 +59,9 @@ export const Avatar3D: React.FC<Avatar3DProps> = ({
     const scene = new THREE.Scene();
     sceneRef.current = scene;
 
-    // 2. Camera Setup
-    const camera = new THREE.PerspectiveCamera(40, width / height, 0.1, 100);
-    camera.position.set(0, 0.2, 3.2);
+    // 2. Camera Setup (Optimized for Half-Body / Bust Portrait Framing)
+    const camera = new THREE.PerspectiveCamera(38, width / height, 0.1, 100);
+    camera.position.set(0, 0.12, 2.5);
     cameraRef.current = camera;
 
     // 3. Renderer Setup
@@ -72,60 +75,133 @@ export const Avatar3D: React.FC<Avatar3DProps> = ({
     renderer.shadowMap.enabled = true;
     renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    renderer.toneMappingExposure = 1.1;
+    renderer.toneMappingExposure = 1.15;
 
     container.innerHTML = '';
     container.appendChild(renderer.domElement);
     rendererRef.current = renderer;
 
-    // 4. Studio Lighting Rig
-    // Key Light (Warm golden)
-    const keyLight = new THREE.DirectionalLight(0xffeedd, 2.2);
-    keyLight.position.set(2, 3, 3);
+    // 4. Studio Lighting Rig (Vivid, Warm Portrait Studio Lighting)
+    const hemiLight = new THREE.HemisphereLight(0xffffff, 0x333355, 2.8);
+    scene.add(hemiLight);
+
+    const frontLight = new THREE.DirectionalLight(0xfff8f0, 2.2);
+    frontLight.position.set(0, 1.2, 3.5);
+    scene.add(frontLight);
+
+    const keyLight = new THREE.DirectionalLight(0xffeedd, 2.0);
+    keyLight.position.set(2, 2.5, 2.5);
     scene.add(keyLight);
 
-    // Fill Light (Cool cyan)
-    const fillLight = new THREE.DirectionalLight(0x38bdf8, 1.4);
-    fillLight.position.set(-3, 1, 2);
+    const fillLight = new THREE.DirectionalLight(0x38bdf8, 1.5);
+    fillLight.position.set(-2.5, 1.5, 2);
     scene.add(fillLight);
 
-    // Rim/Back Light (Electric purple/neon blue for edge separation)
-    const rimLight = new THREE.DirectionalLight(0x818cf8, 2.8);
-    rimLight.position.set(0, 3, -2);
+    const rimLight = new THREE.DirectionalLight(0x818cf8, 2.2);
+    rimLight.position.set(0, 2.5, -2);
     scene.add(rimLight);
 
-    // Ambient Light
-    const ambientLight = new THREE.AmbientLight(0x1e1b4b, 1.2);
-    scene.add(ambientLight);
-
-    // 5. Build 3D Human Avatar (Procedural high-detail Stylized Mentor Bust)
+    // 5. Build Half-Body 3D Avatar (Bust with Suit, Collar, Head & Face)
     const avatarRoot = new THREE.Group();
-    avatarRoot.position.set(0, -0.4, 0);
+    avatarRoot.position.set(0, -0.05, 0);
     scene.add(avatarRoot);
 
-    // --- MATERIALS ---
-    // Realistic Indian Skin Tone Material
+    let torsoGroup: THREE.Group | null = null;
+    let headGroup: THREE.Group | null = null;
+
+    // Load User's Downloaded Realistic 3D Model (`/man_in_suit.glb`)
+    let isGLBLoaded = false;
+    const loader = new GLTFLoader();
+    loader.load(
+      '/man_in_suit.glb',
+      (gltf) => {
+        const model = gltf.scene;
+
+        // 1. Hide floor elements
+        model.traverse((child) => {
+          if (child.name && child.name.toLowerCase().includes('floor')) {
+            child.visible = false;
+          }
+          if ((child as THREE.Mesh).isMesh) {
+            const mesh = child as THREE.Mesh;
+            mesh.castShadow = true;
+            mesh.receiveShadow = true;
+            if (mesh.material) {
+              const mat = (Array.isArray(mesh.material) ? mesh.material[0] : mesh.material) as THREE.MeshStandardMaterial;
+              mat.side = THREE.DoubleSide;
+              mat.roughness = 0.55;
+              mat.metalness = 0.1;
+              mat.needsUpdate = true;
+            }
+            // Attach lips for speech animation
+            if (child.name.toLowerCase().includes('lip')) {
+              jawRef.current = mesh;
+            }
+          }
+        });
+
+        // 2. Measure bounding box without floor
+        const box = new THREE.Box3().setFromObject(model);
+        const size = box.getSize(new THREE.Vector3());
+        const center = box.getCenter(new THREE.Vector3());
+
+        // 3. Half-Body Portrait Scale & Alignment (Larger & Moved Higher)
+        const maxDim = Math.max(size.x, size.y, size.z);
+        const scale = 3.8 / (maxDim || 1);
+        model.scale.set(scale, scale, scale);
+
+        // Position: Moves his head up towards the top of the frame
+        const upperBodyOffsetY = (center.y + size.y * 0.08) * scale;
+        model.position.x = -center.x * scale;
+        model.position.y = -upperBodyOffsetY + 0.26;
+        model.position.z = -center.z * scale;
+
+
+        headGroupRef.current = model;
+        avatarRoot.add(model);
+        isGLBLoaded = true;
+
+        // Hide procedural fallback if GLB is loaded
+        if (torsoGroup) torsoGroup.visible = false;
+        if (headGroup) headGroup.visible = false;
+      },
+      undefined,
+      (err) => {
+        console.log('Using procedural 3D model fallback.', err);
+      }
+    );
+
+    // --- MATERIALS (Configured dynamically per selected 3D Persona Preset) ---
+    const presetConfig = {
+      kishore: { skin: 0x8d5524, suit: 0x0f172a, hair: 0x171717, iris: 0x3b1d0c, halo: 0x38bdf8 },
+      custom: { skin: 0x8d5524, suit: 0x0f172a, hair: 0x171717, iris: 0x3b1d0c, halo: 0x38bdf8 },
+      sophia: { skin: 0xc58c85, suit: 0x064e3b, hair: 0x4a2810, iris: 0x047857, halo: 0x34d399 },
+      alex: { skin: 0x9f725f, suit: 0x18181b, hair: 0x262626, iris: 0x0f766e, halo: 0x22c55e },
+      marcus: { skin: 0x5c3826, suit: 0x3b0764, hair: 0x0a0a0a, iris: 0x6b21a8, halo: 0xa855f7 },
+      cyber_bot: { skin: 0x64748b, suit: 0x1e293b, hair: 0x06b6d4, iris: 0x00f2fe, halo: 0x00f2fe }
+    }[presetId] || { skin: 0x8d5524, suit: 0x0f172a, hair: 0x171717, iris: 0x3b1d0c, halo: 0x38bdf8 };
+
     const skinMaterial = new THREE.MeshStandardMaterial({
-      color: 0x8d5524, // Warm South Asian tone
-      roughness: 0.55,
-      metalness: 0.05
+      color: presetConfig.skin,
+      roughness: presetId === 'cyber_bot' ? 0.25 : 0.55,
+      metalness: presetId === 'cyber_bot' ? 0.75 : 0.05
     });
 
     const suitMaterial = new THREE.MeshStandardMaterial({
-      color: 0x0f172a, // Deep Navy Suit
+      color: presetConfig.suit,
       roughness: 0.7,
-      metalness: 0.1
+      metalness: presetId === 'cyber_bot' ? 0.6 : 0.1
     });
 
     const shirtMaterial = new THREE.MeshStandardMaterial({
-      color: 0xf8fafc, // Crisp White Shirt
+      color: presetId === 'cyber_bot' ? 0x0f172a : 0xf8fafc,
       roughness: 0.4
     });
 
     const hairMaterial = new THREE.MeshStandardMaterial({
-      color: 0x171717, // Natural Jet Black
+      color: presetConfig.hair,
       roughness: 0.65,
-      metalness: 0.1
+      metalness: presetId === 'cyber_bot' ? 0.8 : 0.1
     });
 
     const eyeWhiteMat = new THREE.MeshStandardMaterial({
@@ -134,7 +210,7 @@ export const Avatar3D: React.FC<Avatar3DProps> = ({
     });
 
     const irisMat = new THREE.MeshStandardMaterial({
-      color: 0x3b1d0c, // Deep brown iris
+      color: presetConfig.iris,
       roughness: 0.1,
       metalness: 0.2
     });
@@ -144,13 +220,13 @@ export const Avatar3D: React.FC<Avatar3DProps> = ({
     });
 
     const lipMaterial = new THREE.MeshStandardMaterial({
-      color: 0x6e3b26,
+      color: presetId === 'cyber_bot' ? 0x0284c7 : 0x6e3b26,
       roughness: 0.4
     });
 
-    // --- TORSO / SUIT BODY ---
-    const torsoGroup = new THREE.Group();
-    
+    // --- TORSO / SUIT BODY (Half-Body Bust) ---
+    torsoGroup = new THREE.Group();
+
     // Shoulders / Blazer
     const blazerGeo = new THREE.CylinderGeometry(0.7, 0.85, 0.9, 32);
     const blazerMesh = new THREE.Mesh(blazerGeo, suitMaterial);
@@ -168,7 +244,7 @@ export const Avatar3D: React.FC<Avatar3DProps> = ({
     avatarRoot.add(torsoGroup);
 
     // --- HEAD & NECK GROUP (Articulated for rotation) ---
-    const headGroup = new THREE.Group();
+    headGroup = new THREE.Group();
     headGroup.position.set(0, 0.35, 0);
     headGroupRef.current = headGroup;
 
@@ -238,7 +314,7 @@ export const Avatar3D: React.FC<Avatar3DProps> = ({
 
     // --- EYES & EYELIDS ---
     const eyeRadius = 0.065;
-    
+
     // Left Eye Assembly
     const leftEyeGroup = new THREE.Group();
     leftEyeGroup.position.set(-0.15, 0.28, 0.37);
@@ -377,33 +453,60 @@ export const Avatar3D: React.FC<Avatar3DProps> = ({
       // 1. Organic Breathing & Idle Drift
       const breatheY = Math.sin(elapsedTime * 2.0) * 0.015;
       const breatheRot = Math.sin(elapsedTime * 1.2) * 0.01;
-      avatarRoot.position.y = -0.4 + breatheY;
+      avatarRoot.position.y = (presetId === 'custom' ? -0.05 : -0.4) + breatheY;
 
       // 2. Smooth Head Damping to Mouse Look
       const targetHeadX = mouseTargetRef.current.y * 0.18 + (currentState === 'listening' ? 0.05 : 0);
       const targetHeadY = mouseTargetRef.current.x * 0.28 + (currentState === 'listening' ? -0.08 : 0);
-      
+
       currentHeadRotRef.current.x += (targetHeadX - currentHeadRotRef.current.x) * 0.08;
       currentHeadRotRef.current.y += (targetHeadY - currentHeadRotRef.current.y) * 0.08;
 
       if (headGroupRef.current) {
-        headGroupRef.current.rotation.x = currentHeadRotRef.current.x + breatheRot;
-        headGroupRef.current.rotation.y = currentHeadRotRef.current.y;
-        headGroupRef.current.rotation.z = (currentState === 'listening' ? 0.06 : 0);
+        if (isGLBLoaded) {
+          // Keep 3D model rock-steady without forward/backward rocking
+          headGroupRef.current.rotation.x = 0;
+          headGroupRef.current.rotation.y = currentHeadRotRef.current.y * 0.12;
+          headGroupRef.current.rotation.z = (currentState === 'listening' ? 0.02 : 0);
+        } else {
+          headGroupRef.current.rotation.x = currentHeadRotRef.current.x + breatheRot;
+          headGroupRef.current.rotation.y = currentHeadRotRef.current.y;
+          headGroupRef.current.rotation.z = (currentState === 'listening' ? 0.04 : 0);
+        }
       }
 
-      // 3. Real-Time Lip-Sync & Speaking Animation
+      // 3. Real-Time Lip-Sync & Viseme Speech Animation
       if (jawRef.current) {
         if (currentState === 'speaking') {
-          speechTimer += delta * 14;
-          // Natural speech cadence combining fast viseme waves and slower vowel modulations
-          const speechOpen = Math.abs(Math.sin(speechTimer) * 0.04 + Math.sin(speechTimer * 2.3) * 0.025);
-          jawRef.current.position.y = -0.02 - Math.min(0.06, speechOpen);
-          jawRef.current.scale.x = 1.0 + Math.sin(speechTimer * 1.5) * 0.15;
+          speechTimer += delta * 15;
+          // Natural speech cadence combining fast viseme waves and vowel opening cycles
+          const visemeOpen = Math.abs(Math.sin(speechTimer * 1.4) * 0.7 + Math.sin(speechTimer * 2.8) * 0.3);
+          const visemeSpread = Math.cos(speechTimer * 2.0) * 0.12;
+
+          if (isGLBLoaded) {
+            // In man_in_suit.glb coordinate space, Z is the vertical mouth opening axis
+            jawRef.current.position.z = -visemeOpen * 1.8;
+            jawRef.current.position.y = -visemeOpen * 0.6;
+            jawRef.current.scale.z = 1.0 + visemeOpen * 0.6;
+            jawRef.current.scale.x = 1.0 + visemeSpread;
+          } else {
+            // Procedural avatar lip scale
+            jawRef.current.scale.y = 1.0 + visemeOpen * 1.6;
+            jawRef.current.scale.x = 1.0 + visemeSpread;
+            jawRef.current.position.y = -0.02 - Math.min(0.08, visemeOpen * 0.06);
+          }
         } else {
-          // Return smoothly to closed mouth
-          jawRef.current.position.y += (-0.02 - jawRef.current.position.y) * 0.2;
-          jawRef.current.scale.x += (1.0 - jawRef.current.scale.x) * 0.2;
+          // Return smoothly to natural closed mouth
+          if (isGLBLoaded) {
+            jawRef.current.position.z += (0 - jawRef.current.position.z) * 0.25;
+            jawRef.current.position.y += (0 - jawRef.current.position.y) * 0.25;
+            jawRef.current.scale.z += (1.0 - jawRef.current.scale.z) * 0.25;
+            jawRef.current.scale.x += (1.0 - jawRef.current.scale.x) * 0.25;
+          } else {
+            jawRef.current.scale.y += (1.0 - jawRef.current.scale.y) * 0.25;
+            jawRef.current.scale.x += (1.0 - jawRef.current.scale.x) * 0.25;
+            jawRef.current.position.y += (-0.02 - jawRef.current.position.y) * 0.25;
+          }
         }
       }
 
@@ -436,7 +539,7 @@ export const Avatar3D: React.FC<Avatar3DProps> = ({
       if (haloRingRef.current) {
         haloRingRef.current.rotation.z = elapsedTime * 0.3;
         const haloMat = haloRingRef.current.material as THREE.MeshBasicMaterial;
-        
+
         if (currentState === 'speaking') {
           haloMat.color.setHex(0x38bdf8); // Glowing Cyan
           haloMat.opacity = 0.6 + Math.sin(elapsedTime * 6) * 0.2;
@@ -483,25 +586,24 @@ export const Avatar3D: React.FC<Avatar3DProps> = ({
       renderer.dispose();
       scene.clear();
     };
-  }, []);
+  }, [presetId]);
 
   return (
     <div className="relative w-full h-full min-h-[260px] sm:min-h-[280px] flex items-center justify-center overflow-hidden rounded-[24px] bg-gradient-to-b from-slate-950 via-[#0a0f1d] to-slate-950 select-none">
-      
+
       {/* 3D WebGL Canvas Container */}
       <div ref={containerRef} className="w-full h-full absolute inset-0 cursor-grab active:cursor-grabbing" />
 
       {/* Floating State Badge Overlay */}
       <div className="absolute top-3 left-3 z-20 flex items-center gap-1.5 bg-slate-950/80 backdrop-blur-md border border-slate-800 px-2.5 py-1 rounded-full text-[10px] font-bold">
-        <span className={`w-2 h-2 rounded-full ${
-          agentState === 'speaking'
-            ? 'bg-cyan-400 animate-ping'
-            : agentState === 'listening'
+        <span className={`w-2 h-2 rounded-full ${agentState === 'speaking'
+          ? 'bg-cyan-400 animate-ping'
+          : agentState === 'listening'
             ? 'bg-emerald-400 animate-pulse'
             : agentState === 'processing'
-            ? 'bg-purple-400 animate-spin'
-            : 'bg-indigo-400'
-        }`} />
+              ? 'bg-purple-400 animate-spin'
+              : 'bg-indigo-400'
+          }`} />
         <span className="text-slate-200 uppercase tracking-wider">
           {agentState === 'speaking' ? '3D Voice Active' : agentState === 'listening' ? '3D Listening' : agentState === 'processing' ? 'Thinking' : '3D Ready'}
         </span>

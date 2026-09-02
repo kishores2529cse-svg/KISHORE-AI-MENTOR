@@ -5,7 +5,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 class Settings(BaseModel):
-    PROJECT_NAME: str = "KISHORE S AI Mentor"
+    PROJECT_NAME: str = "KISHORE AI Mentor"
     TAGLINE: str = "It doesn't just answer. It understands how you learn."
     PORT: int = int(os.getenv("PORT", "8000"))
     HOST: str = os.getenv("HOST", "0.0.0.0")

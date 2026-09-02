@@ -123,7 +123,7 @@ export const NotebookDashboard: React.FC<NotebookDashboardProps> = ({
             NotebookLM AI Workspace
           </div>
           <h1 className="text-2xl sm:text-3xl font-extrabold text-white">
-            AI Mentor Dashboard
+            KISHORE AI Mentor Dashboard
           </h1>
           <p className="text-xs sm:text-sm text-slate-400 mt-1">
             Upload study materials or enter any topic to start a human-like 1-on-1 video elucidation session.

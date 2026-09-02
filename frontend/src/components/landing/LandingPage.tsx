@@ -48,18 +48,18 @@ export const LandingPage: React.FC<LandingPageProps> = ({
 
         <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full glass-panel border border-indigo-500/30 text-indigo-300 text-xs font-semibold uppercase tracking-wider mb-6 shadow-sm">
           <Sparkles className="w-3.5 h-3.5 text-cyan-400" />
-          Dedicated 1-on-1 AI Video Mentor & Teacher
+          KISHORE AI Mentor • Dedicated 1-on-1 AI Video Teacher
         </div>
 
         {/* Mentor Avatar Hero Badge */}
         <div className="flex flex-col items-center justify-center mb-6">
           <div className="w-28 h-28 sm:w-32 sm:h-32 rounded-3xl p-1 bg-gradient-to-tr from-cyan-400 via-indigo-500 to-violet-500 shadow-2xl shadow-indigo-500/30 hover:scale-105 transition-transform">
             <div className="w-full h-full rounded-[22px] overflow-hidden bg-slate-950">
-              <img src="/mentor_avatar.jpg" alt="Kishore S" className="w-full h-full object-cover object-top" />
+              <img src="/mentor_avatar.jpg" alt="KISHORE AI Mentor" className="w-full h-full object-cover object-top" />
             </div>
           </div>
           <div className="mt-2.5 flex items-center gap-2 text-xs font-bold text-slate-300">
-            <span>Kishore S</span>
+            <span>KISHORE AI Mentor</span>
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
             <span className="text-emerald-400 font-semibold">Online & Ready to Elucidate</span>
           </div>

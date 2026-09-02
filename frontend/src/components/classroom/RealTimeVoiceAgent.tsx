@@ -22,6 +22,7 @@ import { api } from '../../services/api';
 import { ChatMessage, ConversationSession, UploadResponse } from '../../types';
 import { audioManager, AuthoritativeResponse } from '../../services/audioManager';
 import { Avatar3D } from './Avatar3D';
+import { AvatarSelectorModal, AVATAR_PRESETS } from './AvatarSelectorModal';
 
 interface RealTimeVoiceAgentProps {
   topic: string;
@@ -101,8 +102,10 @@ export const RealTimeVoiceAgent: React.FC<RealTimeVoiceAgentProps> = ({
   const [micPermissionDenied, setMicPermissionDenied] = useState<boolean>(false);
   const [manualInputText, setManualInputText] = useState<string>('');
 
-  // Voice Customization & 3D Avatar
+  // Voice Customization & 3D Avatar Persona Selection
   const [avatarMode, setAvatarMode] = useState<'3d' | 'photo'>('3d');
+  const [selectedPresetId, setSelectedPresetId] = useState<'kishore' | 'sophia' | 'alex' | 'marcus' | 'cyber_bot' | 'custom'>('kishore');
+  const [isAvatarModalOpen, setIsAvatarModalOpen] = useState<boolean>(false);
   const [voiceList, setVoiceList] = useState<VoiceOption[]>(DEFAULT_VOICES);
   const [selectedVoice, setSelectedVoice] = useState<string>('en-IN-PrabhatNeural');
   const [showVoicePicker, setShowVoicePicker] = useState<boolean>(false);
@@ -458,8 +461,8 @@ export const RealTimeVoiceAgent: React.FC<RealTimeVoiceAgentProps> = ({
       targetSubject !== 'New Conversation';
 
     const greeting = isSpecificSubject
-      ? `Hi! I'm Kishore S, your AI Mentor. I'm listening—ask me anything about ${targetSubject} and let's explore it together!`
-      : "Hi! I'm Kishore S, your personal AI Mentor. I'm listening—ask me any question, or upload your study material, and let's explore it together!";
+      ? `Hi! I'm KISHORE AI Mentor. I'm listening—ask me anything about ${targetSubject} and let's explore it together!`
+      : "Hi! I'm KISHORE AI Mentor. I'm listening—ask me any question, or upload your study material, and let's explore it together!";
     
     setLastMentorSpoken(greeting);
 
@@ -653,35 +656,48 @@ export const RealTimeVoiceAgent: React.FC<RealTimeVoiceAgentProps> = ({
                 Personal AI Mentor
               </span>
 
-              {/* 3D vs Photo Avatar Toggle */}
-              <div className="flex items-center bg-slate-900/90 p-0.5 rounded-full border border-slate-800 shadow-inner">
+              <div className="flex items-center gap-2">
+                {/* 3D Persona Selector Button */}
                 <button
                   type="button"
-                  onClick={() => setAvatarMode('3d')}
-                  className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold transition-all ${
-                    avatarMode === '3d'
-                      ? 'bg-gradient-to-r from-cyan-500 to-indigo-500 text-white shadow-md'
-                      : 'text-slate-400 hover:text-white'
-                  }`}
+                  onClick={() => setIsAvatarModalOpen(true)}
+                  className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-indigo-500/20 hover:bg-indigo-500/30 text-cyan-300 border border-indigo-500/40 transition-all flex items-center gap-1 shadow-sm"
+                  title="Choose from 5 Free 3D Avatars"
                 >
-                  ⚡ 3D Avatar
+                  <Sparkles className="w-3 h-3 text-amber-400" />
+                  <span>3D Persona</span>
                 </button>
-                <button
-                  type="button"
-                  onClick={() => setAvatarMode('photo')}
-                  className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold transition-all ${
-                    avatarMode === 'photo'
-                      ? 'bg-gradient-to-r from-cyan-500 to-indigo-500 text-white shadow-md'
-                      : 'text-slate-400 hover:text-white'
-                  }`}
-                >
-                  👤 Photo
-                </button>
+
+                {/* 3D vs Photo Avatar Toggle */}
+                <div className="flex items-center bg-slate-900/90 p-0.5 rounded-full border border-slate-800 shadow-inner">
+                  <button
+                    type="button"
+                    onClick={() => setAvatarMode('3d')}
+                    className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold transition-all ${
+                      avatarMode === '3d'
+                        ? 'bg-gradient-to-r from-cyan-500 to-indigo-500 text-white shadow-md'
+                        : 'text-slate-400 hover:text-white'
+                    }`}
+                  >
+                    ⚡ 3D
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setAvatarMode('photo')}
+                    className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold transition-all ${
+                      avatarMode === 'photo'
+                        ? 'bg-gradient-to-r from-cyan-500 to-indigo-500 text-white shadow-md'
+                        : 'text-slate-400 hover:text-white'
+                    }`}
+                  >
+                    👤 Photo
+                  </button>
+                </div>
               </div>
             </div>
 
             <h2 className="text-xl font-bold text-white flex items-center justify-center gap-2">
-              <span>Kishore S</span>
+              <span>{AVATAR_PRESETS.find(p => p.id === selectedPresetId)?.name || 'KISHORE AI Mentor'}</span>
               <span className="text-[10px] bg-cyan-500/20 text-cyan-300 px-2 py-0.5 rounded-full border border-cyan-500/30 font-semibold">
                 {avatarMode === '3d' ? '3D Interactive Mentor' : 'Live Interactive Voice'}
               </span>
@@ -703,6 +719,7 @@ export const RealTimeVoiceAgent: React.FC<RealTimeVoiceAgentProps> = ({
               {avatarMode === '3d' ? (
                 <Avatar3D
                   agentState={agentState}
+                  presetId={selectedPresetId}
                   spokenText={lastMentorSpoken}
                   isAudioMuted={isAudioMuted}
                 />
@@ -916,6 +933,14 @@ export const RealTimeVoiceAgent: React.FC<RealTimeVoiceAgentProps> = ({
         </div>
 
       </div>
+
+      {/* Free 3D Avatar Persona Selector Modal */}
+      <AvatarSelectorModal
+        isOpen={isAvatarModalOpen}
+        onClose={() => setIsAvatarModalOpen(false)}
+        selectedAvatarId={selectedPresetId}
+        onSelectAvatar={(id) => setSelectedPresetId(id)}
+      />
 
     </div>
   );

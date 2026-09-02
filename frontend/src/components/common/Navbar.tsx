@@ -1,5 +1,6 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { Sparkles, BrainCircuit, BookOpen, Compass, Zap, LayoutDashboard, Mic } from 'lucide-react';
+import { getSessionIntroSlogan } from '../../services/slogans';
 
 interface NavbarProps {
   activeTab: string;
@@ -14,6 +15,9 @@ export const Navbar: React.FC<NavbarProps> = ({
   onLaunchDemo,
   isBackendConnected
 }) => {
+  // Compute dynamic intro slogan once per website visit/refresh
+  const introSlogan = useMemo(() => getSessionIntroSlogan(), []);
+
   return (
     <header className="sticky top-0 z-50 glass-panel border-b border-slate-800/80 px-4 lg:px-8 py-3">
       <div className="max-w-7xl mx-auto flex items-center justify-between">
@@ -25,20 +29,22 @@ export const Navbar: React.FC<NavbarProps> = ({
         >
           <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-cyan-500 via-indigo-500 to-violet-500 p-0.5 shadow-lg shadow-indigo-500/20 group-hover:scale-105 transition-transform">
             <div className="w-full h-full bg-slate-950 rounded-[10px] flex items-center justify-center overflow-hidden">
-              <img src="/mentor_avatar.jpg" alt="Kishore S" className="w-full h-full object-cover object-top" />
+              <img src="/mentor_avatar.jpg" alt="KISHORE AI Mentor" className="w-full h-full object-cover object-top" />
             </div>
           </div>
           <div>
             <div className="flex items-center gap-2">
               <span className="font-bold text-lg tracking-tight text-white group-hover:text-cyan-300 transition-colors">
-                KISHORE S AI Mentor
+                KISHORE AI Mentor
               </span>
               <span className="text-[10px] uppercase font-extrabold tracking-wider bg-indigo-500/20 text-cyan-300 border border-indigo-500/30 px-1.5 py-0.5 rounded-full">
                 Voice Agent
               </span>
             </div>
-            <p className="text-[11px] text-slate-400 font-medium hidden sm:block">
-              Real-Time AI Voice Agent • Understand. Don't Just Memorize
+            {/* Dynamic Rotating Intro Line */}
+            <p className="text-[11px] text-cyan-400 font-semibold hidden sm:flex items-center gap-1">
+              <Sparkles className="w-3 h-3 text-amber-400 animate-pulse" />
+              <span>{introSlogan}</span>
             </p>
           </div>
         </div>
@@ -99,7 +105,7 @@ export const Navbar: React.FC<NavbarProps> = ({
           <button
             onClick={onLaunchDemo}
             className="flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-bold rounded-lg bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-slate-950 shadow-md shadow-emerald-500/20 hover:scale-[1.02] active:scale-95 transition-all"
-            title="Start Real-Time Voice Call with Kishore S"
+            title="Start Real-Time Voice Call with KISHORE AI Mentor"
           >
             <Mic className="w-3.5 h-3.5 fill-current" />
             <span>⚡ Start Voice Call</span>

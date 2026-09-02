@@ -133,7 +133,7 @@ export const RealisticTeacherAvatar: React.FC<RealisticTeacherAvatarProps> = ({
         {/* Mentor Title & Topic */}
         <div className="mt-3 text-center">
           <h3 className="text-sm font-bold text-white tracking-tight flex items-center justify-center gap-1.5">
-            <span>Kishore S</span>
+            <span>KISHORE AI Mentor</span>
             <span className="text-[10px] bg-indigo-500/20 text-indigo-300 px-1.5 py-0.2 rounded font-semibold">
               {avatarMode === '3d' ? '3D AI Avatar' : 'AI Mentor'}
             </span>
@@ -155,7 +155,7 @@ export const RealisticTeacherAvatar: React.FC<RealisticTeacherAvatarProps> = ({
           {isSpeaking && <span className="text-cyan-400 animate-pulse">Voice Active</span>}
         </div>
         <p className="italic text-slate-300">
-          "{spokenText || "Hello! I'm Kishore S, your AI Mentor. Upload your study material or ask me anything—I'm here to elucidate the concepts step-by-step so you deeply understand rather than memorize!"}"
+          "{spokenText || "Hello! I'm KISHORE AI Mentor. Upload your study material or ask me anything—I'm here to elucidate the concepts step-by-step so you deeply understand rather than memorize!"}"
         </p>
       </div>
 

@@ -43,7 +43,7 @@ from app.rag.service import RAGService
 from app.services.llm_service import LLMService
 
 app = FastAPI(
-    title="KISHORE S AI Mentor — AdaptIQ API",
+    title="KISHORE AI Mentor — AdaptIQ API",
     description="Adaptive AI Teacher API that understands how you learn with live interactive human video mentor.",
     version="1.0.0"
 )
@@ -141,7 +141,7 @@ def handle_chat_message(req: ChatRequest):
     if is_document_mode:
         if found_in_doc:
             prompt = f"""
-You are KISHORE S, an empathetic, brilliant personal AI Mentor and Teacher.
+You are KISHORE AI Mentor, an empathetic, brilliant personal AI Mentor and Teacher.
 Mode: DOCUMENT_MODE (Grounded answering based strictly on the uploaded learning material).
 Tagline: "Understand. Don't Just Memorize".
 
@@ -205,7 +205,7 @@ Output pure JSON:
     else:
         # MODE B — GENERAL VOICE CHAT MODE (No document attached)
         prompt = f"""
-You are KISHORE S, an empathetic, brilliant personal AI Mentor and Teacher.
+You are KISHORE AI Mentor, an empathetic, brilliant personal AI Mentor and Teacher.
 Mode: GENERAL_VOICE_CHAT_MODE (General educational mentorship without predefined subject or document).
 Tagline: "Understand. Don't Just Memorize".
 

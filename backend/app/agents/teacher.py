@@ -58,7 +58,7 @@ Output pure JSON:
 }}
 """
 
-        system_instruction = "You are Kishore S, an empathetic, intuitive AI Mentor and Teacher. Output pure JSON."
+        system_instruction = "You are KISHORE AI Mentor, an empathetic, intuitive AI Mentor and Teacher. Output pure JSON."
         data = LLMService.generate_structured_json(prompt, system_instruction)
 
         q_data = data.get("suggested_question", {})
