@@ -1,7 +1,7 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef } from 'react';
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
-import { Volume2, Sparkles, User, RefreshCw, Eye, Orbit } from 'lucide-react';
+import { Orbit } from 'lucide-react';
 
 interface Avatar3DProps {
   agentState: 'listening' | 'processing' | 'speaking' | 'idle';
@@ -25,9 +25,8 @@ export const Avatar3D: React.FC<Avatar3DProps> = ({
 
   // Model part refs for dynamic animation
   const headGroupRef = useRef<THREE.Group | null>(null);
-  const jawRef = useRef<THREE.Mesh | null>(null);
-  const leftEyeRef = useRef<THREE.Mesh | null>(null);
-  const rightEyeRef = useRef<THREE.Mesh | null>(null);
+  const jawRef = useRef<THREE.Mesh | THREE.Group | null>(null);
+  const morphMeshesRef = useRef<Array<{ mesh: THREE.Mesh; targetIndices: number[] }>>([]);
   const leftEyelidRef = useRef<THREE.Mesh | null>(null);
   const rightEyelidRef = useRef<THREE.Mesh | null>(null);
   const haloRingRef = useRef<THREE.Mesh | null>(null);
@@ -81,7 +80,7 @@ export const Avatar3D: React.FC<Avatar3DProps> = ({
     container.appendChild(renderer.domElement);
     rendererRef.current = renderer;
 
-    // 4. Studio Lighting Rig (Vivid, Warm Portrait Studio Lighting)
+    // 4. Studio Lighting Rig
     const hemiLight = new THREE.HemisphereLight(0xffffff, 0x333355, 2.8);
     scene.add(hemiLight);
 
@@ -101,7 +100,7 @@ export const Avatar3D: React.FC<Avatar3DProps> = ({
     rimLight.position.set(0, 2.5, -2);
     scene.add(rimLight);
 
-    // 5. Build Half-Body 3D Avatar (Bust with Suit, Collar, Head & Face)
+    // 5. Build Half-Body 3D Avatar Root
     const avatarRoot = new THREE.Group();
     avatarRoot.position.set(0, -0.05, 0);
     scene.add(avatarRoot);
@@ -109,69 +108,7 @@ export const Avatar3D: React.FC<Avatar3DProps> = ({
     let torsoGroup: THREE.Group | null = null;
     let headGroup: THREE.Group | null = null;
 
-    // Load User's Downloaded Realistic 3D Model (`/man_in_suit.glb`)
-    let isGLBLoaded = false;
-    const loader = new GLTFLoader();
-    loader.load(
-      '/man_in_suit.glb',
-      (gltf) => {
-        const model = gltf.scene;
-
-        // 1. Hide floor elements
-        model.traverse((child) => {
-          if (child.name && child.name.toLowerCase().includes('floor')) {
-            child.visible = false;
-          }
-          if ((child as THREE.Mesh).isMesh) {
-            const mesh = child as THREE.Mesh;
-            mesh.castShadow = true;
-            mesh.receiveShadow = true;
-            if (mesh.material) {
-              const mat = (Array.isArray(mesh.material) ? mesh.material[0] : mesh.material) as THREE.MeshStandardMaterial;
-              mat.side = THREE.DoubleSide;
-              mat.roughness = 0.55;
-              mat.metalness = 0.1;
-              mat.needsUpdate = true;
-            }
-            // Attach lips for speech animation
-            if (child.name.toLowerCase().includes('lip')) {
-              jawRef.current = mesh;
-            }
-          }
-        });
-
-        // 2. Measure bounding box without floor
-        const box = new THREE.Box3().setFromObject(model);
-        const size = box.getSize(new THREE.Vector3());
-        const center = box.getCenter(new THREE.Vector3());
-
-        // 3. Half-Body Portrait Scale & Alignment (Larger & Moved Higher)
-        const maxDim = Math.max(size.x, size.y, size.z);
-        const scale = 3.8 / (maxDim || 1);
-        model.scale.set(scale, scale, scale);
-
-        // Position: Moves his head up towards the top of the frame
-        const upperBodyOffsetY = (center.y + size.y * 0.08) * scale;
-        model.position.x = -center.x * scale;
-        model.position.y = -upperBodyOffsetY + 0.26;
-        model.position.z = -center.z * scale;
-
-
-        headGroupRef.current = model;
-        avatarRoot.add(model);
-        isGLBLoaded = true;
-
-        // Hide procedural fallback if GLB is loaded
-        if (torsoGroup) torsoGroup.visible = false;
-        if (headGroup) headGroup.visible = false;
-      },
-      undefined,
-      (err) => {
-        console.log('Using procedural 3D model fallback.', err);
-      }
-    );
-
-    // --- MATERIALS (Configured dynamically per selected 3D Persona Preset) ---
+    // --- MATERIALS ---
     const presetConfig = {
       kishore: { skin: 0x8d5524, suit: 0x0f172a, hair: 0x171717, iris: 0x3b1d0c, halo: 0x38bdf8 },
       custom: { skin: 0x8d5524, suit: 0x0f172a, hair: 0x171717, iris: 0x3b1d0c, halo: 0x38bdf8 },
@@ -189,211 +126,205 @@ export const Avatar3D: React.FC<Avatar3DProps> = ({
 
     const suitMaterial = new THREE.MeshStandardMaterial({
       color: presetConfig.suit,
-      roughness: 0.7,
-      metalness: presetId === 'cyber_bot' ? 0.6 : 0.1
+      roughness: 0.65,
+      metalness: 0.1
     });
 
     const shirtMaterial = new THREE.MeshStandardMaterial({
-      color: presetId === 'cyber_bot' ? 0x0f172a : 0xf8fafc,
+      color: 0xf8fafc,
       roughness: 0.4
+    });
+
+    const tieMaterial = new THREE.MeshStandardMaterial({
+      color: presetId === 'sophia' ? 0x059669 : (presetId === 'marcus' ? 0x9333ea : 0x0284c7),
+      roughness: 0.3
     });
 
     const hairMaterial = new THREE.MeshStandardMaterial({
       color: presetConfig.hair,
-      roughness: 0.65,
-      metalness: presetId === 'cyber_bot' ? 0.8 : 0.1
-    });
-
-    const eyeWhiteMat = new THREE.MeshStandardMaterial({
-      color: 0xf1f5f9,
-      roughness: 0.2
-    });
-
-    const irisMat = new THREE.MeshStandardMaterial({
-      color: presetConfig.iris,
-      roughness: 0.1,
-      metalness: 0.2
-    });
-
-    const pupilMat = new THREE.MeshBasicMaterial({
-      color: 0x000000
+      roughness: 0.8
     });
 
     const lipMaterial = new THREE.MeshStandardMaterial({
-      color: presetId === 'cyber_bot' ? 0x0284c7 : 0x6e3b26,
+      color: presetId === 'cyber_bot' ? 0x0284c7 : 0xa55146,
       roughness: 0.4
     });
 
-    // --- TORSO / SUIT BODY (Half-Body Bust) ---
+    // --- PROCEDURAL 3D AVATAR (Torso & Head) ---
     torsoGroup = new THREE.Group();
+    torsoGroup.position.set(0, -0.45, 0);
 
-    // Shoulders / Blazer
-    const blazerGeo = new THREE.CylinderGeometry(0.7, 0.85, 0.9, 32);
-    const blazerMesh = new THREE.Mesh(blazerGeo, suitMaterial);
-    blazerMesh.position.set(0, -0.25, 0);
-    blazerMesh.scale.set(1.15, 1, 0.7);
-    torsoGroup.add(blazerMesh);
+    const chestGeo = new THREE.BoxGeometry(0.72, 0.6, 0.38);
+    const chest = new THREE.Mesh(chestGeo, suitMaterial);
+    torsoGroup.add(chest);
 
-    // Shirt Collar & Tie Area
-    const shirtGeo = new THREE.CylinderGeometry(0.3, 0.4, 0.6, 16);
-    const shirtMesh = new THREE.Mesh(shirtGeo, shirtMaterial);
-    shirtMesh.position.set(0, 0.05, 0.08);
-    shirtMesh.scale.set(0.9, 0.8, 0.5);
-    torsoGroup.add(shirtMesh);
+    const shirtVGeo = new THREE.BufferGeometry();
+    const vVertices = new Float32Array([
+      -0.12, 0.3, 0.191,
+       0.12, 0.3, 0.191,
+       0.0, -0.05, 0.191
+    ]);
+    shirtVGeo.setAttribute('position', new THREE.BufferAttribute(vVertices, 3));
+    const shirtV = new THREE.Mesh(shirtVGeo, shirtMaterial);
+    torsoGroup.add(shirtV);
+
+    const tieGeo = new THREE.BoxGeometry(0.06, 0.32, 0.02);
+    const tie = new THREE.Mesh(tieGeo, tieMaterial);
+    tie.position.set(0, 0.04, 0.2);
+    torsoGroup.add(tie);
+
+    const neckGeo = new THREE.CylinderGeometry(0.1, 0.12, 0.18, 16);
+    const neck = new THREE.Mesh(neckGeo, skinMaterial);
+    neck.position.set(0, 0.34, 0);
+    torsoGroup.add(neck);
 
     avatarRoot.add(torsoGroup);
 
-    // --- HEAD & NECK GROUP (Articulated for rotation) ---
     headGroup = new THREE.Group();
-    headGroup.position.set(0, 0.35, 0);
-    headGroupRef.current = headGroup;
+    headGroup.position.set(0, 0.15, 0);
 
-    // Neck
-    const neckGeo = new THREE.CylinderGeometry(0.19, 0.22, 0.4, 24);
-    const neckMesh = new THREE.Mesh(neckGeo, skinMaterial);
-    neckMesh.position.set(0, -0.1, 0);
-    headGroup.add(neckMesh);
+    const headGeo = new THREE.SphereGeometry(0.3, 32, 32);
+    headGeo.scale(1.0, 1.18, 1.05);
+    const head = new THREE.Mesh(headGeo, skinMaterial);
+    headGroup.add(head);
 
-    // Head Base (Cranium & Face)
-    const headGeo = new THREE.SphereGeometry(0.44, 32, 32);
-    const headMesh = new THREE.Mesh(headGeo, skinMaterial);
-    headMesh.scale.set(0.95, 1.15, 1.0);
-    headMesh.position.set(0, 0.26, 0);
-    headGroup.add(headMesh);
+    const hairGeo = new THREE.SphereGeometry(0.32, 32, 32);
+    hairGeo.scale(1.04, 1.15, 1.08);
+    const hair = new THREE.Mesh(hairGeo, hairMaterial);
+    hair.position.set(0, 0.06, -0.02);
+    headGroup.add(hair);
 
-    // Cheekbones & Chin definition
-    const chinGeo = new THREE.SphereGeometry(0.24, 24, 24);
-    const chinMesh = new THREE.Mesh(chinGeo, skinMaterial);
-    chinMesh.scale.set(0.85, 0.8, 0.9);
-    chinMesh.position.set(0, 0.02, 0.22);
-    headGroup.add(chinMesh);
+    // Procedural Eyes
+    const eyeGeo = new THREE.SphereGeometry(0.042, 16, 16);
+    const whiteMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
+    const irisMat = new THREE.MeshBasicMaterial({ color: presetConfig.iris });
+    const pupilMat = new THREE.MeshBasicMaterial({ color: 0x000000 });
 
-    // Nose
-    const noseGeo = new THREE.ConeGeometry(0.065, 0.22, 16);
-    const noseMesh = new THREE.Mesh(noseGeo, skinMaterial);
-    noseMesh.rotation.x = Math.PI / 2.3;
-    noseMesh.position.set(0, 0.24, 0.44);
-    headGroup.add(noseMesh);
-
-    // Ears
-    const earGeo = new THREE.SphereGeometry(0.09, 16, 16);
-    const leftEar = new THREE.Mesh(earGeo, skinMaterial);
-    leftEar.scale.set(0.4, 0.9, 0.6);
-    leftEar.position.set(-0.43, 0.24, 0.02);
-    headGroup.add(leftEar);
-
-    const rightEar = leftEar.clone();
-    rightEar.position.x = 0.43;
-    headGroup.add(rightEar);
-
-    // Modern Haircut (Top Volume & Fade)
-    const hairTopGeo = new THREE.SphereGeometry(0.46, 24, 24);
-    const hairTopMesh = new THREE.Mesh(hairTopGeo, hairMaterial);
-    hairTopMesh.scale.set(0.98, 1.05, 1.05);
-    hairTopMesh.position.set(0, 0.38, -0.04);
-    headGroup.add(hairTopMesh);
-
-    // Forehead Hairline Bangs
-    const bangsGeo = new THREE.BoxGeometry(0.55, 0.12, 0.2);
-    const bangsMesh = new THREE.Mesh(bangsGeo, hairMaterial);
-    bangsMesh.position.set(0, 0.58, 0.32);
-    bangsMesh.rotation.x = -0.3;
-    headGroup.add(bangsMesh);
-
-    // Eyebrows
-    const browGeo = new THREE.BoxGeometry(0.14, 0.03, 0.04);
-    const leftBrow = new THREE.Mesh(browGeo, hairMaterial);
-    leftBrow.position.set(-0.16, 0.38, 0.41);
-    leftBrow.rotation.z = 0.08;
-    headGroup.add(leftBrow);
-
-    const rightBrow = new THREE.Mesh(browGeo, hairMaterial);
-    rightBrow.position.set(0.16, 0.38, 0.41);
-    rightBrow.rotation.z = -0.08;
-    headGroup.add(rightBrow);
-
-    // --- EYES & EYELIDS ---
-    const eyeRadius = 0.065;
-
-    // Left Eye Assembly
     const leftEyeGroup = new THREE.Group();
-    leftEyeGroup.position.set(-0.15, 0.28, 0.37);
+    leftEyeGroup.position.set(-0.11, 0.04, 0.28);
+    const leftEyeBall = new THREE.Mesh(eyeGeo, whiteMat);
+    const leftIris = new THREE.Mesh(new THREE.CircleGeometry(0.02, 16), irisMat);
+    leftIris.position.set(0, 0, 0.041);
+    const leftPupil = new THREE.Mesh(new THREE.CircleGeometry(0.01, 16), pupilMat);
+    leftPupil.position.set(0, 0, 0.042);
+    leftEyeGroup.add(leftEyeBall, leftIris, leftPupil);
 
-    const leftEyeBall = new THREE.Mesh(new THREE.SphereGeometry(eyeRadius, 16, 16), eyeWhiteMat);
-    leftEyeGroup.add(leftEyeBall);
-
-    const leftIris = new THREE.Mesh(new THREE.CylinderGeometry(0.032, 0.032, 0.01, 16), irisMat);
-    leftIris.rotation.x = Math.PI / 2;
-    leftIris.position.set(0, 0, eyeRadius * 0.9);
-    leftEyeGroup.add(leftIris);
-
-    const leftPupil = new THREE.Mesh(new THREE.CylinderGeometry(0.016, 0.016, 0.012, 16), pupilMat);
-    pupilMat.depthTest = true;
-    leftPupil.rotation.x = Math.PI / 2;
-    leftPupil.position.set(0, 0, eyeRadius * 0.95);
-    leftEyeGroup.add(leftPupil);
-
-    // Left Eyelid (for dynamic blinking)
-    const leftEyelid = new THREE.Mesh(
-      new THREE.SphereGeometry(eyeRadius * 1.05, 16, 8, 0, Math.PI * 2, 0, Math.PI / 2),
-      skinMaterial
-    );
-    leftEyelid.rotation.x = Math.PI; // open by default
+    const eyelidGeo = new THREE.SphereGeometry(0.046, 16, 16, 0, Math.PI * 2, 0, Math.PI * 0.5);
+    const leftEyelid = new THREE.Mesh(eyelidGeo, skinMaterial);
+    leftEyelid.rotation.x = Math.PI;
     leftEyeGroup.add(leftEyelid);
     leftEyelidRef.current = leftEyelid;
-    leftEyeRef.current = leftEyeBall;
-
     headGroup.add(leftEyeGroup);
 
-    // Right Eye Assembly
-    const rightEyeGroup = new THREE.Group();
-    rightEyeGroup.position.set(0.15, 0.28, 0.37);
-
-    const rightEyeBall = leftEyeBall.clone();
-    rightEyeGroup.add(rightEyeBall);
-
-    const rightIris = leftIris.clone();
-    rightEyeGroup.add(rightIris);
-
-    const rightPupil = leftPupil.clone();
-    rightEyeGroup.add(rightPupil);
-
-    const rightEyelid = leftEyelid.clone();
-    rightEyeGroup.add(rightEyelid);
+    const rightEyeGroup = leftEyeGroup.clone();
+    rightEyeGroup.position.set(0.11, 0.04, 0.28);
+    const rightEyelid = rightEyeGroup.children[3] as THREE.Mesh;
     rightEyelidRef.current = rightEyelid;
-    rightEyeRef.current = rightEyeBall;
-
     headGroup.add(rightEyeGroup);
 
-    // --- ARTICULATED MOUTH & JAW (For Lip-Sync) ---
+    // --- ARTICULATED MOUTH & JAW GROUP (For Dynamic Lip Sync) ---
     const jawGroup = new THREE.Group();
-    jawGroup.position.set(0, 0.12, 0.35);
+    jawGroup.position.set(0, -0.09, 0.30);
 
-    // Upper Lip
-    const upperLipGeo = new THREE.BoxGeometry(0.15, 0.024, 0.05);
+    const upperLipGeo = new THREE.BoxGeometry(0.12, 0.02, 0.04);
     const upperLip = new THREE.Mesh(upperLipGeo, lipMaterial);
-    upperLip.position.set(0, 0.015, 0.04);
+    upperLip.position.set(0, 0.015, 0.02);
     jawGroup.add(upperLip);
 
-    // Lower Lip / Dynamic Jaw
-    const lowerLipGeo = new THREE.BoxGeometry(0.14, 0.026, 0.06);
+    const lowerLipGeo = new THREE.BoxGeometry(0.11, 0.022, 0.05);
     const lowerLip = new THREE.Mesh(lowerLipGeo, lipMaterial);
-    lowerLip.position.set(0, -0.02, 0.04);
+    lowerLip.position.set(0, -0.015, 0.02);
     jawGroup.add(lowerLip);
     jawRef.current = lowerLip;
 
-    // Mouth Cavity (Dark interior)
-    const cavityGeo = new THREE.BoxGeometry(0.12, 0.04, 0.04);
+    const cavityGeo = new THREE.BoxGeometry(0.09, 0.03, 0.03);
     const cavityMat = new THREE.MeshBasicMaterial({ color: 0x1c0b05 });
     const cavityMesh = new THREE.Mesh(cavityGeo, cavityMat);
-    cavityMesh.position.set(0, -0.005, 0.02);
+    cavityMesh.position.set(0, 0, 0.01);
     jawGroup.add(cavityMesh);
 
     headGroup.add(jawGroup);
+    headGroupRef.current = headGroup;
     avatarRoot.add(headGroup);
 
-    // --- 6. HOLOGRAPHIC AMBIENT HALO & PARTICLES ---
-    // Orbiting Glowing Ring
+    // --- GLB MODEL LOADER ---
+    let isGLBLoaded = false;
+    const loader = new GLTFLoader();
+    loader.load(
+      '/man_in_suit.glb',
+      (gltf) => {
+        const model = gltf.scene;
+        const morphMeshes: Array<{ mesh: THREE.Mesh; targetIndices: number[] }> = [];
+
+        model.traverse((child) => {
+          if (child.name && child.name.toLowerCase().includes('floor')) {
+            child.visible = false;
+          }
+          if ((child as THREE.Mesh).isMesh) {
+            const mesh = child as THREE.Mesh;
+            mesh.castShadow = true;
+            mesh.receiveShadow = true;
+            if (mesh.material) {
+              const mat = (Array.isArray(mesh.material) ? mesh.material[0] : mesh.material) as THREE.MeshStandardMaterial;
+              mat.side = THREE.DoubleSide;
+              mat.roughness = 0.55;
+              mat.metalness = 0.1;
+              mat.needsUpdate = true;
+            }
+
+            // Find Morph Targets for facial animations
+            if (mesh.morphTargetDictionary && mesh.morphTargetInfluences) {
+              const targetIndices: number[] = [];
+              Object.keys(mesh.morphTargetDictionary).forEach((targetName) => {
+                const lower = targetName.toLowerCase();
+                if (
+                  lower.includes('mouth') ||
+                  lower.includes('jaw') ||
+                  lower.includes('viseme') ||
+                  lower.includes('open') ||
+                  lower.includes('smile') ||
+                  lower.includes('talk')
+                ) {
+                  targetIndices.push(mesh.morphTargetDictionary![targetName]);
+                }
+              });
+              if (targetIndices.length > 0) {
+                morphMeshes.push({ mesh, targetIndices });
+              }
+            }
+          }
+        });
+
+        morphMeshesRef.current = morphMeshes;
+
+        const box = new THREE.Box3().setFromObject(model);
+        const size = box.getSize(new THREE.Vector3());
+        const center = box.getCenter(new THREE.Vector3());
+
+        const maxDim = Math.max(size.x, size.y, size.z);
+        const scale = 3.8 / (maxDim || 1);
+        model.scale.set(scale, scale, scale);
+
+        const upperBodyOffsetY = (center.y + size.y * 0.08) * scale;
+        model.position.x = -center.x * scale;
+        model.position.y = -upperBodyOffsetY + 0.26;
+        model.position.z = -center.z * scale;
+
+        headGroupRef.current = model;
+        avatarRoot.add(model);
+        isGLBLoaded = true;
+
+        // Hide ALL procedural body parts completely when 3D GLB model loads
+        if (torsoGroup) torsoGroup.visible = false;
+        if (headGroup) headGroup.visible = false;
+      },
+      undefined,
+      (err) => {
+        console.log('Using enhanced procedural 3D avatar.', err);
+      }
+    );
+
+    // --- HOLOGRAPHIC AMBIENT HALO & PARTICLES ---
     const haloGeo = new THREE.TorusGeometry(0.95, 0.015, 16, 64);
     const haloMat = new THREE.MeshBasicMaterial({
       color: 0x38bdf8,
@@ -406,7 +337,6 @@ export const Avatar3D: React.FC<Avatar3DProps> = ({
     scene.add(haloRing);
     haloRingRef.current = haloRing;
 
-    // Floating Knowledge Particles
     const particleCount = 45;
     const particleGeo = new THREE.BufferGeometry();
     const particlePos = new Float32Array(particleCount * 3);
@@ -426,7 +356,7 @@ export const Avatar3D: React.FC<Avatar3DProps> = ({
     scene.add(particles);
     particlesRef.current = particles;
 
-    // --- 7. Mouse-Look Listener ---
+    // --- MOUSE TRACKING ---
     const handleMouseMove = (e: MouseEvent) => {
       const rect = container.getBoundingClientRect();
       const x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
@@ -436,11 +366,10 @@ export const Avatar3D: React.FC<Avatar3DProps> = ({
         y: Math.max(-1, Math.min(1, y))
       };
     };
-
     window.addEventListener('mousemove', handleMouseMove);
 
-    // --- 8. Animation & Render Loop ---
-    let clock = new THREE.Clock();
+    // --- ANIMATION & RENDER LOOP ---
+    const clock = new THREE.Clock();
     let speechTimer = 0;
 
     const animate = () => {
@@ -450,12 +379,12 @@ export const Avatar3D: React.FC<Avatar3DProps> = ({
       const elapsedTime = clock.getElapsedTime();
       const currentState = agentStateRef.current;
 
-      // 1. Organic Breathing & Idle Drift
+      // 1. Organic Breathing
       const breatheY = Math.sin(elapsedTime * 2.0) * 0.015;
       const breatheRot = Math.sin(elapsedTime * 1.2) * 0.01;
       avatarRoot.position.y = (presetId === 'custom' ? -0.05 : -0.4) + breatheY;
 
-      // 2. Smooth Head Damping to Mouse Look
+      // 2. Smooth Head Tracking
       const targetHeadX = mouseTargetRef.current.y * 0.18 + (currentState === 'listening' ? 0.05 : 0);
       const targetHeadY = mouseTargetRef.current.x * 0.28 + (currentState === 'listening' ? -0.08 : 0);
 
@@ -464,8 +393,8 @@ export const Avatar3D: React.FC<Avatar3DProps> = ({
 
       if (headGroupRef.current) {
         if (isGLBLoaded) {
-          // Keep 3D model rock-steady without forward/backward rocking
-          headGroupRef.current.rotation.x = 0;
+          const speechNod = (currentState === 'speaking') ? Math.sin(elapsedTime * 8) * 0.015 : 0;
+          headGroupRef.current.rotation.x = speechNod;
           headGroupRef.current.rotation.y = currentHeadRotRef.current.y * 0.12;
           headGroupRef.current.rotation.z = (currentState === 'listening' ? 0.02 : 0);
         } else {
@@ -475,42 +404,48 @@ export const Avatar3D: React.FC<Avatar3DProps> = ({
         }
       }
 
-      // 3. Real-Time Lip-Sync & Viseme Speech Animation
-      if (jawRef.current) {
-        if (currentState === 'speaking') {
-          speechTimer += delta * 15;
-          // Natural speech cadence combining fast viseme waves and vowel opening cycles
-          const visemeOpen = Math.abs(Math.sin(speechTimer * 1.4) * 0.7 + Math.sin(speechTimer * 2.8) * 0.3);
-          const visemeSpread = Math.cos(speechTimer * 2.0) * 0.12;
+      // 3. REAL-TIME SYNCHRONIZED LIP-SYNC & MOUTH MOVEMENT
+      const isSpeakingNow = currentState === 'speaking';
 
-          if (isGLBLoaded) {
-            // In man_in_suit.glb coordinate space, Z is the vertical mouth opening axis
-            jawRef.current.position.z = -visemeOpen * 1.8;
-            jawRef.current.position.y = -visemeOpen * 0.6;
-            jawRef.current.scale.z = 1.0 + visemeOpen * 0.6;
-            jawRef.current.scale.x = 1.0 + visemeSpread;
-          } else {
-            // Procedural avatar lip scale
-            jawRef.current.scale.y = 1.0 + visemeOpen * 1.6;
-            jawRef.current.scale.x = 1.0 + visemeSpread;
-            jawRef.current.position.y = -0.02 - Math.min(0.08, visemeOpen * 0.06);
-          }
-        } else {
-          // Return smoothly to natural closed mouth
-          if (isGLBLoaded) {
-            jawRef.current.position.z += (0 - jawRef.current.position.z) * 0.25;
-            jawRef.current.position.y += (0 - jawRef.current.position.y) * 0.25;
-            jawRef.current.scale.z += (1.0 - jawRef.current.scale.z) * 0.25;
-            jawRef.current.scale.x += (1.0 - jawRef.current.scale.x) * 0.25;
-          } else {
-            jawRef.current.scale.y += (1.0 - jawRef.current.scale.y) * 0.25;
-            jawRef.current.scale.x += (1.0 - jawRef.current.scale.x) * 0.25;
-            jawRef.current.position.y += (-0.02 - jawRef.current.position.y) * 0.25;
-          }
+      if (isSpeakingNow) {
+        speechTimer += delta * 14;
+        // Phoneme waveform matching natural speech cadence
+        const visemeOpen = Math.abs(Math.sin(speechTimer * 1.6) * 0.65 + Math.sin(speechTimer * 3.2) * 0.35);
+        const visemeSpread = Math.cos(speechTimer * 2.2) * 0.15;
+
+        // A. Morph Targets (if model supports them)
+        if (morphMeshesRef.current.length > 0) {
+          morphMeshesRef.current.forEach(({ mesh, targetIndices }) => {
+            targetIndices.forEach((idx) => {
+              mesh.morphTargetInfluences![idx] = visemeOpen;
+            });
+          });
+        }
+
+        // B. Articulated 3D Jaw / Lip movement
+        if (jawRef.current) {
+          jawRef.current.scale.y = 1.0 + visemeOpen * 1.8;
+          jawRef.current.scale.x = 1.0 + visemeSpread;
+          jawRef.current.position.y = -0.015 - Math.min(0.06, visemeOpen * 0.045);
+        }
+      } else {
+        // Return smoothly to closed mouth
+        if (morphMeshesRef.current.length > 0) {
+          morphMeshesRef.current.forEach(({ mesh, targetIndices }) => {
+            targetIndices.forEach((idx) => {
+              mesh.morphTargetInfluences![idx] += (0 - mesh.morphTargetInfluences![idx]) * 0.3;
+            });
+          });
+        }
+
+        if (jawRef.current) {
+          jawRef.current.scale.y += (1.0 - jawRef.current.scale.y) * 0.3;
+          jawRef.current.scale.x += (1.0 - jawRef.current.scale.x) * 0.3;
+          jawRef.current.position.y += (-0.015 - jawRef.current.position.y) * 0.3;
         }
       }
 
-      // 4. Natural Periodic Eye Blinking
+      // 4. Eye Blinking
       const now = Date.now();
       const blink = blinkStateRef.current;
       if (!blink.isBlinking && now > blink.nextBlinkTime) {
@@ -519,11 +454,10 @@ export const Avatar3D: React.FC<Avatar3DProps> = ({
       }
 
       if (blink.isBlinking) {
-        blink.blinkProgress += delta * 12; // fast blink speed
+        blink.blinkProgress += delta * 12;
         const blinkAmount = Math.sin(blink.blinkProgress * Math.PI);
 
         if (leftEyelidRef.current && rightEyelidRef.current) {
-          // Rotate eyelid to cover iris
           const lidAngle = Math.PI - blinkAmount * (Math.PI * 0.85);
           leftEyelidRef.current.rotation.x = lidAngle;
           rightEyelidRef.current.rotation.x = lidAngle;
@@ -531,32 +465,31 @@ export const Avatar3D: React.FC<Avatar3DProps> = ({
 
         if (blink.blinkProgress >= 1) {
           blink.isBlinking = false;
-          blink.nextBlinkTime = now + 2500 + Math.random() * 3500; // Next blink in 2.5 - 6s
+          blink.nextBlinkTime = now + 2500 + Math.random() * 3500;
         }
       }
 
-      // 5. Dynamic Ambient Halo & Color Shifts based on state
+      // 5. Halo & Lighting Animation
       if (haloRingRef.current) {
         haloRingRef.current.rotation.z = elapsedTime * 0.3;
         const haloMat = haloRingRef.current.material as THREE.MeshBasicMaterial;
 
         if (currentState === 'speaking') {
-          haloMat.color.setHex(0x38bdf8); // Glowing Cyan
-          haloMat.opacity = 0.6 + Math.sin(elapsedTime * 6) * 0.2;
+          haloMat.color.setHex(0x38bdf8);
+          haloMat.opacity = 0.65 + Math.sin(elapsedTime * 6) * 0.2;
         } else if (currentState === 'listening') {
-          haloMat.color.setHex(0x34d399); // Attentive Emerald
+          haloMat.color.setHex(0x34d399);
           haloMat.opacity = 0.5 + Math.sin(elapsedTime * 3) * 0.15;
         } else if (currentState === 'processing') {
-          haloMat.color.setHex(0xa855f7); // Cognitive Purple
+          haloMat.color.setHex(0xa855f7);
           haloMat.opacity = 0.7;
           haloRingRef.current.rotation.z = elapsedTime * 1.5;
         } else {
-          haloMat.color.setHex(0x818cf8); // Indigo
+          haloMat.color.setHex(0x818cf8);
           haloMat.opacity = 0.35;
         }
       }
 
-      // 6. Floating Particles Slow Drift
       if (particlesRef.current) {
         particlesRef.current.rotation.y = elapsedTime * 0.05;
       }
@@ -566,7 +499,6 @@ export const Avatar3D: React.FC<Avatar3DProps> = ({
 
     animFrameIdRef.current = requestAnimationFrame(animate);
 
-    // --- 9. Window Resize Handling ---
     const handleResize = () => {
       if (!containerRef.current || !rendererRef.current || !cameraRef.current) return;
       const newWidth = containerRef.current.clientWidth;
@@ -578,7 +510,6 @@ export const Avatar3D: React.FC<Avatar3DProps> = ({
 
     window.addEventListener('resize', handleResize);
 
-    // --- 10. Cleanup on Unmount ---
     return () => {
       if (animFrameIdRef.current) cancelAnimationFrame(animFrameIdRef.current);
       window.removeEventListener('mousemove', handleMouseMove);
@@ -590,11 +521,8 @@ export const Avatar3D: React.FC<Avatar3DProps> = ({
 
   return (
     <div className="relative w-full h-full min-h-[260px] sm:min-h-[280px] flex items-center justify-center overflow-hidden rounded-[24px] bg-gradient-to-b from-slate-950 via-[#0a0f1d] to-slate-950 select-none">
-
-      {/* 3D WebGL Canvas Container */}
       <div ref={containerRef} className="w-full h-full absolute inset-0 cursor-grab active:cursor-grabbing" />
 
-      {/* Floating State Badge Overlay */}
       <div className="absolute top-3 left-3 z-20 flex items-center gap-1.5 bg-slate-950/80 backdrop-blur-md border border-slate-800 px-2.5 py-1 rounded-full text-[10px] font-bold">
         <span className={`w-2 h-2 rounded-full ${agentState === 'speaking'
           ? 'bg-cyan-400 animate-ping'
@@ -609,13 +537,11 @@ export const Avatar3D: React.FC<Avatar3DProps> = ({
         </span>
       </div>
 
-      {/* Interactive Mouse Look Tooltip Hint */}
       <div className="absolute top-3 right-3 z-20 flex items-center gap-1 bg-slate-900/60 backdrop-blur-md px-2 py-0.5 rounded-md text-[9px] text-slate-400 border border-slate-800">
         <Orbit className="w-2.5 h-2.5 text-cyan-400" />
         <span>3D Head Tracking</span>
       </div>
 
-      {/* Real-Time Audio Equalizer Bar when Speaking */}
       {agentState === 'speaking' && (
         <div className="absolute bottom-3 left-1/2 -translate-x-1/2 z-20 flex items-center gap-1 bg-slate-950/85 px-4 py-1.5 rounded-full border border-cyan-400/50 backdrop-blur-md shadow-lg">
           <span className="w-1 h-3 bg-cyan-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
@@ -627,14 +553,12 @@ export const Avatar3D: React.FC<Avatar3DProps> = ({
         </div>
       )}
 
-      {/* Listening Glow Indicator when Student Speaks */}
       {agentState === 'listening' && (
         <div className="absolute bottom-3 left-1/2 -translate-x-1/2 z-20 flex items-center gap-1.5 bg-slate-950/85 px-4 py-1.5 rounded-full border border-emerald-400/50 backdrop-blur-md shadow-lg">
           <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-ping" />
           <span className="text-[11px] font-extrabold text-emerald-300">Hearing your Voice...</span>
         </div>
       )}
-
     </div>
   );
 };

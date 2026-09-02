@@ -7,6 +7,10 @@ from app.config import settings
 
 logger = logging.getLogger(__name__)
 
+# Persistent connection pool for ultra-low latency (<1s response time)
+_http_session = requests.Session()
+_http_session.mount("https://", requests.adapters.HTTPAdapter(pool_connections=10, pool_maxsize=20, max_retries=1))
+
 # Initialize Gemini if key is provided
 _gemini_client = None
 if settings.GEMINI_API_KEY:
@@ -20,11 +24,11 @@ if settings.GEMINI_API_KEY:
 
 # High-speed reliable OpenRouter models with instant failover
 OPENROUTER_MODEL_CASCADE = [
-    "google/gemini-2.0-flash-001",
     "meta-llama/llama-3.3-70b-instruct",
+    "qwen/qwen-2.5-72b-instruct",
+    "qwen/qwen-2.5-7b-instruct",
     "deepseek/deepseek-chat",
-    "mistralai/mistral-small-24b-instruct-2501",
-    "qwen/qwen-2.5-72b-instruct"
+    "mistralai/mistral-small-24b-instruct-2501"
 ]
 
 class LLMService:
@@ -85,10 +89,20 @@ class LLMService:
                 try:
                     payload = {
                         "model": candidate_model,
+                        "provider": {
+                            "order": ["Groq", "Cerebras", "Together", "DeepInfra", "Lepton"],
+                            "allow_fallbacks": True
+                        },
                         "messages": messages,
-                        "temperature": 0.3
+                        "temperature": 0.2,
+                        "max_tokens": 450
                     }
-                    res = requests.post(f"{settings.OPENROUTER_BASE_URL}/chat/completions", headers=headers, json=payload, timeout=25)
+                    res = _http_session.post(
+                        f"{settings.OPENROUTER_BASE_URL}/chat/completions",
+                        headers=headers,
+                        json=payload,
+                        timeout=12
+                    )
                     if res.status_code == 200:
                         data = res.json()
                         if "choices" in data and len(data["choices"]) > 0:

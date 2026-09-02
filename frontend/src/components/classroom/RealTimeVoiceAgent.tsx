@@ -184,7 +184,6 @@ export const RealTimeVoiceAgent: React.FC<RealTimeVoiceAgentProps> = ({
     };
 
     setAgentState('speaking');
-    stopListening();
 
     audioManager.playResponse(authoritativeResp, {
       onStart: () => {
@@ -253,7 +252,7 @@ export const RealTimeVoiceAgent: React.FC<RealTimeVoiceAgentProps> = ({
 
   // INSTANT REAL-TIME STREAMING SPEECH RECOGNITION (Word-by-word Live Display)
   const startContinuousListening = () => {
-    if (isSpeakingRef.current || isMutedRef.current) return;
+    if (isMutedRef.current) return;
     if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
       console.warn("Speech recognition not supported in this browser.");
       return;
@@ -308,7 +307,11 @@ export const RealTimeVoiceAgent: React.FC<RealTimeVoiceAgentProps> = ({
             clearTimeout(silenceTimerRef.current);
           }
 
-          // Auto-submit after natural 850ms speech pause
+          // Ultra-responsive auto-submit: 350ms if sentence completed with punctuation, 450ms on natural pause
+          const trimmed = liveText.trim();
+          const endsWithPunctuation = /[.?!]$/.test(trimmed);
+          const pauseDuration = endsWithPunctuation ? 300 : 450;
+
           silenceTimerRef.current = setTimeout(() => {
             if (accumulatedSpeechRef.current.trim().length > 1) {
               const textToSubmit = accumulatedSpeechRef.current.trim();
@@ -316,7 +319,7 @@ export const RealTimeVoiceAgent: React.FC<RealTimeVoiceAgentProps> = ({
               setLiveUserTranscript('');
               handleStudentVoiceSpoke(textToSubmit);
             }
-          }, 850);
+          }, pauseDuration);
         }
       };
 
@@ -360,9 +363,19 @@ export const RealTimeVoiceAgent: React.FC<RealTimeVoiceAgentProps> = ({
   };
 
   const stopListening = () => {
-    if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current);
+    if (silenceTimerRef.current) {
+      clearTimeout(silenceTimerRef.current);
+      silenceTimerRef.current = null;
+    }
     if (recognitionRef.current) {
-      try { recognitionRef.current.stop(); } catch {}
+      try {
+        const activeRec = recognitionRef.current;
+        recognitionRef.current = null;
+        activeRec.onresult = null;
+        activeRec.onerror = null;
+        activeRec.onend = null;
+        activeRec.abort();
+      } catch (err) {}
     }
   };
 
@@ -451,24 +464,11 @@ export const RealTimeVoiceAgent: React.FC<RealTimeVoiceAgentProps> = ({
     }
   };
 
-  // On mount: Welcome greeting + start continuous voice loop
+      // On mount: Start listening immediately (Intro auto-speech removed)
   useEffect(() => {
-    const docName = document?.filename;
-    const targetSubject = docName || topic;
-    const isSpecificSubject = targetSubject && 
-      targetSubject !== 'General Educational Mentorship' && 
-      targetSubject !== 'General Tutoring & Mentorship' &&
-      targetSubject !== 'New Conversation';
-
-    const greeting = isSpecificSubject
-      ? `Hi! I'm KISHORE AI Mentor. I'm listening—ask me anything about ${targetSubject} and let's explore it together!`
-      : "Hi! I'm KISHORE AI Mentor. I'm listening—ask me any question, or upload your study material, and let's explore it together!";
-    
-    setLastMentorSpoken(greeting);
-
-    speakMentorSpeech(greeting, undefined, () => {
-      startContinuousListening();
-    });
+    setAgentState('listening');
+    startContinuousListening();
+    setLastMentorSpoken('Listening... Ask me anything to begin!');
 
     return () => {
       stopListening();
@@ -480,11 +480,16 @@ export const RealTimeVoiceAgent: React.FC<RealTimeVoiceAgentProps> = ({
   const handleToggleMic = () => {
     if (isMicMuted) {
       setIsMicMuted(false);
+      isMutedRef.current = false;
+      setAgentState('listening');
       startContinuousListening();
     } else {
       setIsMicMuted(true);
+      isMutedRef.current = true;
       stopListening();
       setAgentState('idle');
+      setLiveUserTranscript('');
+      accumulatedSpeechRef.current = '';
     }
   };
 
@@ -509,7 +514,7 @@ export const RealTimeVoiceAgent: React.FC<RealTimeVoiceAgentProps> = ({
     <div className="max-w-6xl mx-auto px-4 sm:px-6 py-4 space-y-5">
       
       {/* Top Call HUD Header */}
-      <div className="glass-panel rounded-2xl px-6 py-4 border border-indigo-500/30 flex flex-wrap items-center justify-between gap-4 shadow-2xl bg-gradient-to-r from-slate-950 via-slate-900 to-indigo-950/80">
+      <div className="relative z-50 glass-panel rounded-2xl px-6 py-4 border border-indigo-500/30 flex flex-wrap items-center justify-between gap-4 shadow-2xl bg-gradient-to-r from-slate-950 via-slate-900 to-indigo-950/80">
         <div className="flex items-center gap-3">
           <div className="relative">
             <span className="w-3 h-3 rounded-full bg-emerald-400 block" />
@@ -538,54 +543,76 @@ export const RealTimeVoiceAgent: React.FC<RealTimeVoiceAgentProps> = ({
         </div>
 
         {/* Status Indicator & Voice Persona Selector */}
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 relative z-50">
           
           {/* Voice Persona Dropdown */}
           <div className="relative">
             <button
               onClick={() => setShowVoicePicker(!showVoicePicker)}
-              className="px-3 py-1.5 rounded-xl bg-slate-900 border border-cyan-500/40 text-cyan-200 hover:bg-slate-800 text-xs font-semibold flex items-center gap-1.5 shadow-md transition-all"
-              title="Change Mentor Voice"
+              className="px-3 py-1.5 rounded-xl bg-slate-900/90 hover:bg-slate-800 border border-cyan-500/50 text-cyan-200 text-xs font-bold flex items-center gap-1.5 shadow-lg transition-all ring-1 ring-cyan-500/30"
+              title="Change Mentor Voice Persona"
             >
               <Sliders className="w-3.5 h-3.5 text-cyan-400" />
               <span>Voice: {voiceList.find(v => v.id === selectedVoice)?.name.split(' ')[0] || 'Kishore'}</span>
             </button>
 
             {showVoicePicker && (
-              <div className="absolute right-0 mt-2 w-72 bg-slate-900 border border-indigo-500/40 rounded-2xl p-2 shadow-2xl z-50 space-y-1">
-                <div className="px-3 py-1.5 border-b border-slate-800 text-[10px] uppercase font-bold text-slate-400 tracking-wider">
-                  Select Studio Neural Voice
-                </div>
-                {voiceList.map((v) => (
-                  <button
-                    key={v.id}
-                    onClick={() => {
-                      setSelectedVoice(v.id);
-                      setShowVoicePicker(false);
-                    }}
-                    className={`w-full text-left p-2.5 rounded-xl text-xs transition-colors flex items-center justify-between ${
-                      selectedVoice === v.id
-                        ? 'bg-indigo-600/30 border border-indigo-500/50 text-white font-bold'
-                        : 'hover:bg-slate-800 text-slate-300'
-                    }`}
-                  >
-                    <div>
-                      <div className="font-semibold flex items-center gap-1.5">
-                        <span>{v.name}</span>
-                        {v.recommended && (
-                          <span className="text-[9px] bg-cyan-500/20 text-cyan-300 px-1.5 py-0.2 rounded font-bold">
-                            Default
-                          </span>
+              <>
+                {/* Backdrop Click Dismiss */}
+                <div 
+                  className="fixed inset-0 z-[90] bg-transparent"
+                  onClick={() => setShowVoicePicker(false)}
+                />
+
+                <div className="absolute right-0 mt-2 w-80 bg-slate-950/95 backdrop-blur-xl border border-cyan-500/40 rounded-2xl p-2.5 shadow-2xl z-[100] space-y-1 ring-2 ring-cyan-500/20 animate-in fade-in zoom-in-95 duration-150">
+                  <div className="px-3 py-2 border-b border-slate-800/80 flex items-center justify-between">
+                    <span className="text-[11px] uppercase font-extrabold text-cyan-300 tracking-wider flex items-center gap-1.5">
+                      <Sliders className="w-3.5 h-3.5 text-cyan-400" />
+                      Select Neural Voice
+                    </span>
+                    <span className="text-[9px] text-slate-400">Instant Preview</span>
+                  </div>
+
+                  <div className="max-h-64 overflow-y-auto space-y-1 pr-1">
+                    {voiceList.map((v) => (
+                      <button
+                        key={v.id}
+                        onClick={() => {
+                          const newVoiceId = v.id;
+                          setSelectedVoice(newVoiceId);
+                          setShowVoicePicker(false);
+
+                          // Live Real-Time Voice Preview & Confirmation
+                          const mentorFirstName = v.name.split(' ')[0];
+                          speakMentorSpeech(
+                            `Hello! I'm ${mentorFirstName}. I will be your mentor today. How can I help you?`
+                          );
+                        }}
+                        className={`w-full text-left p-2.5 rounded-xl text-xs transition-all flex items-center justify-between ${
+                          selectedVoice === v.id
+                            ? 'bg-gradient-to-r from-indigo-900/60 to-cyan-900/40 border border-cyan-400/60 text-white font-bold shadow-md ring-1 ring-cyan-400/30'
+                            : 'hover:bg-slate-900/80 text-slate-300 hover:text-white border border-transparent'
+                        }`}
+                      >
+                        <div>
+                          <div className="font-bold flex items-center gap-1.5">
+                            <span>{v.name}</span>
+                            {v.recommended && (
+                              <span className="text-[9px] bg-cyan-500/20 text-cyan-300 px-1.5 py-0.2 rounded font-bold border border-cyan-500/30">
+                                Default
+                              </span>
+                            )}
+                          </div>
+                          <div className="text-[10px] text-slate-400 font-normal mt-0.5">{v.description}</div>
+                        </div>
+                        {selectedVoice === v.id && (
+                          <CheckCircle2 className="w-4 h-4 text-cyan-400 flex-shrink-0" />
                         )}
-                      </div>
-                      <div className="text-[10px] text-slate-400 font-normal">{v.description}</div>
-                    </div>
-                    {selectedVoice === v.id && (
-                      <CheckCircle2 className="w-4 h-4 text-cyan-400 flex-shrink-0" />
-                    )}
-                  </button>
-                ))}
-              </div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </>
             )}
           </div>
 

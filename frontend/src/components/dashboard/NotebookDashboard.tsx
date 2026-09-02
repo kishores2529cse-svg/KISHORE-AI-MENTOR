@@ -306,35 +306,7 @@ export const NotebookDashboard: React.FC<NotebookDashboardProps> = ({
             </div>
           </div>
 
-          {/* Ask Anything / Topic Input Bar */}
-          <form onSubmit={handleStartCustomSession} className="glass-panel rounded-2xl p-6 border border-slate-800 space-y-4">
-            <h3 className="text-sm font-bold text-white flex items-center gap-2">
-              <BookOpen className="w-4 h-4 text-cyan-400" />
-              What would you like the AI Mentor to explain today?
-            </h3>
 
-            <div className="flex flex-col sm:flex-row gap-3">
-              <input
-                type="text"
-                value={topicInput}
-                onChange={(e) => setTopicInput(e.target.value)}
-                placeholder="Ask anything or enter a topic (e.g. 'How does electrical resistance work?' or 'Elucidate limits in calculus')..."
-                className="flex-1 px-4 py-3.5 rounded-xl bg-slate-900/90 border border-slate-700 focus:border-cyan-400 text-white placeholder-slate-500 text-sm outline-none font-medium transition-colors"
-              />
-
-              <button
-                type="submit"
-                disabled={!topicInput.trim() && !activeDoc}
-                className="px-6 py-3.5 rounded-xl bg-gradient-to-r from-indigo-600 to-cyan-500 hover:from-indigo-500 hover:to-cyan-400 text-white font-bold text-xs sm:text-sm shadow-xl shadow-indigo-500/20 flex items-center justify-center gap-2 disabled:opacity-50 transition-all hover:scale-105 active:scale-95"
-              >
-                <span>Start Video Chat</span>
-                <ArrowRight className="w-4 h-4" />
-              </button>
-            </div>
-
-            {/* Quick starters removed to avoid hardcoded domain-specific examples */}
-
-          </form>
 
         </div>
 

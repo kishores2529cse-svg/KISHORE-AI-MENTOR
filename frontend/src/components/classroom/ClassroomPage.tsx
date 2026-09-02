@@ -102,6 +102,7 @@ export const ClassroomPage: React.FC<ClassroomPageProps> = ({
   const [isAudioPaused, setIsAudioPaused] = useState(false);
   const [emotion, setEmotion] = useState<'explaining' | 'encouraging' | 'diagnostic' | 'misconception' | 'celebrating'>('explaining');
   const [isListening, setIsListening] = useState(false);
+  const recognitionRef = useRef<any>(null);
 
   // Signature WOW Alert modal
   const [wowAlert, setWowAlert] = useState<{
@@ -193,24 +194,56 @@ export const ClassroomPage: React.FC<ClassroomPageProps> = ({
     }
 
     const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-    const recognition = new SpeechRecognition();
-    recognition.continuous = false;
-    recognition.interimResults = false;
-    recognition.lang = lessonPlan.language === 'Hindi' ? 'hi-IN' : lessonPlan.language === 'Tamil' ? 'ta-IN' : 'en-US';
 
-    if (!isListening) {
-      setIsListening(true);
-      recognition.start();
-      recognition.onresult = (event: any) => {
-        const transcript = event.results[0][0].transcript;
-        setStudentAnswer(transcript);
-        setIsListening(false);
-      };
-      recognition.onerror = () => setIsListening(false);
-      recognition.onend = () => setIsListening(false);
-    } else {
-      recognition.stop();
+    if (isListening) {
+      if (recognitionRef.current) {
+        try {
+          const activeRec = recognitionRef.current;
+          recognitionRef.current = null;
+          activeRec.onresult = null;
+          activeRec.onerror = null;
+          activeRec.onend = null;
+          activeRec.abort();
+        } catch {}
+      }
       setIsListening(false);
+    } else {
+      try {
+        if (recognitionRef.current) {
+          try { recognitionRef.current.abort(); } catch {}
+        }
+        const recognition = new SpeechRecognition();
+        recognition.continuous = false;
+        recognition.interimResults = false;
+        recognition.lang = lessonPlan.language === 'Hindi' ? 'hi-IN' : lessonPlan.language === 'Tamil' ? 'ta-IN' : 'en-US';
+
+        recognition.onstart = () => {
+          setIsListening(true);
+        };
+
+        recognition.onresult = (event: any) => {
+          const transcript = event.results[0][0].transcript;
+          setStudentAnswer(transcript);
+          setIsListening(false);
+          recognitionRef.current = null;
+        };
+
+        recognition.onerror = () => {
+          setIsListening(false);
+          recognitionRef.current = null;
+        };
+
+        recognition.onend = () => {
+          setIsListening(false);
+          recognitionRef.current = null;
+        };
+
+        recognitionRef.current = recognition;
+        recognition.start();
+      } catch (err) {
+        console.warn("Speech recognition error:", err);
+        setIsListening(false);
+      }
     }
   };
 

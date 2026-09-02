@@ -50,6 +50,7 @@ export const InteractiveVideoTutor: React.FC<InteractiveVideoTutorProps> = ({
   const [currentSpokenText, setCurrentSpokenText] = useState('');
   const [emotion, setEmotion] = useState('Elucidating');
   const [isListening, setIsListening] = useState(false);
+  const recognitionRef = useRef<any>(null);
 
   // Synchronized Whiteboard / Notes
   const [whiteboardNotes, setWhiteboardNotes] = useState<{
@@ -224,23 +225,55 @@ export const InteractiveVideoTutor: React.FC<InteractiveVideoTutorProps> = ({
     }
 
     const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-    const recognition = new SpeechRecognition();
-    recognition.continuous = false;
-    recognition.interimResults = false;
 
-    if (!isListening) {
-      setIsListening(true);
-      recognition.start();
-      recognition.onresult = (event: any) => {
-        const transcript = event.results[0][0].transcript;
-        setInputMessage(transcript);
-        setIsListening(false);
-      };
-      recognition.onerror = () => setIsListening(false);
-      recognition.onend = () => setIsListening(false);
-    } else {
-      recognition.stop();
+    if (isListening) {
+      if (recognitionRef.current) {
+        try {
+          const activeRec = recognitionRef.current;
+          recognitionRef.current = null;
+          activeRec.onresult = null;
+          activeRec.onerror = null;
+          activeRec.onend = null;
+          activeRec.abort();
+        } catch {}
+      }
       setIsListening(false);
+    } else {
+      try {
+        if (recognitionRef.current) {
+          try { recognitionRef.current.abort(); } catch {}
+        }
+        const recognition = new SpeechRecognition();
+        recognition.continuous = false;
+        recognition.interimResults = false;
+
+        recognition.onstart = () => {
+          setIsListening(true);
+        };
+
+        recognition.onresult = (event: any) => {
+          const transcript = event.results[0][0].transcript;
+          setInputMessage(transcript);
+          setIsListening(false);
+          recognitionRef.current = null;
+        };
+
+        recognition.onerror = () => {
+          setIsListening(false);
+          recognitionRef.current = null;
+        };
+
+        recognition.onend = () => {
+          setIsListening(false);
+          recognitionRef.current = null;
+        };
+
+        recognitionRef.current = recognition;
+        recognition.start();
+      } catch (err) {
+        console.warn("Speech recognition error:", err);
+        setIsListening(false);
+      }
     }
   };
 
