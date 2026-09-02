@@ -1,143 +1,159 @@
-import React from 'react';
-import {
-  Sparkles,
-  ArrowRight,
-  Upload,
-  Brain,
-  Layers,
-  HelpCircle,
-  AlertTriangle,
-  RefreshCw,
-  Award,
-  Globe,
-  Compass,
-  Zap,
-  CheckCircle2,
-  FileText,
-  Video
-} from 'lucide-react';
+import React, { useEffect, useRef } from 'react';
+import { MagicRings } from './MagicRings';
 
 interface LandingPageProps {
   onStartLearning: () => void;
-  onUploadMaterial: () => void;
-  onLaunchDemo: () => void;
+  onUploadMaterial?: () => void;
+  onLaunchDemo?: () => void;
 }
 
 export const LandingPage: React.FC<LandingPageProps> = ({
   onStartLearning,
-  onUploadMaterial,
-  onLaunchDemo,
 }) => {
-  const steps = [
-    { label: 'Understand', icon: Brain, desc: 'Assess learner level & cognitive goals' },
-    { label: 'Plan', icon: Layers, desc: 'Generate multi-segment curriculum' },
-    { label: 'Explain', icon: Sparkles, desc: 'Teach via spoken pedagogy & intuition' },
-    { label: 'Question', icon: HelpCircle, desc: 'Continuous diagnostic verification' },
-    { label: 'Detect Misconception', icon: AlertTriangle, desc: 'Pinpoint flawed mental models' },
-    { label: 'Adapt & Re-teach', icon: RefreshCw, desc: 'Shift to physical analogies & visuals' },
-    { label: 'Mastery & Report', icon: Award, desc: 'Deep comprehension verified' }
-  ];
+  const hasSpokenOnThisMountRef = useRef(false);
+
+  // Cinematic Welcome Voice Note:
+  // "Welcome to KISHORE AI MENTOR — The Future of Learning is Here."
+  useEffect(() => {
+    let cancelTimer: any = null;
+
+    const playCinematicWelcome = () => {
+      if (hasSpokenOnThisMountRef.current) return;
+      if (!('speechSynthesis' in window)) return;
+
+      const speakWithNaturalPacing = () => {
+        if (hasSpokenOnThisMountRef.current) return;
+        window.speechSynthesis.cancel();
+
+        const voices = window.speechSynthesis.getVoices();
+        // Target natural American English tone (Christopher / Guy / David / Natural US English)
+        const americanVoice = voices.find(v => 
+          (v.name.toLowerCase().includes('christopher') || 
+           v.name.toLowerCase().includes('guy') || 
+           v.name.toLowerCase().includes('natural') || 
+           v.name.toLowerCase().includes('david') || 
+           v.name.toLowerCase().includes('aria')) && 
+          v.lang.startsWith('en-US')
+        ) || voices.find(v => v.lang === 'en-US') || voices.find(v => v.lang.startsWith('en'));
+
+        // Part 1: "Welcome to KISHORE AI MENTOR"
+        const part1 = new SpeechSynthesisUtterance("Welcome to KISHORE AI MENTOR.");
+        part1.rate = 0.96;
+        part1.pitch = 0.96;
+        if (americanVoice) part1.voice = americanVoice;
+
+        // Part 2: "The Future of Learning is Here."
+        const part2 = new SpeechSynthesisUtterance("The future of learning is here.");
+        part2.rate = 0.92;
+        part2.pitch = 0.94;
+        if (americanVoice) part2.voice = americanVoice;
+
+        part1.onstart = () => {
+          hasSpokenOnThisMountRef.current = true;
+        };
+
+        // When part 1 finishes, add a smooth 220ms dramatic pause before delivering the tagline
+        part1.onend = () => {
+          cancelTimer = setTimeout(() => {
+            if (window.speechSynthesis) {
+              window.speechSynthesis.speak(part2);
+            }
+          }, 220);
+        };
+
+        window.speechSynthesis.speak(part1);
+      };
+
+      if (window.speechSynthesis.getVoices().length > 0) {
+        speakWithNaturalPacing();
+      } else {
+        window.speechSynthesis.onvoiceschanged = () => {
+          speakWithNaturalPacing();
+        };
+      }
+    };
+
+    // Trigger shortly after landing page loads + fallback on first interaction
+    const initTimer = setTimeout(playCinematicWelcome, 450);
+    const handleFirstClick = () => {
+      playCinematicWelcome();
+      window.removeEventListener('click', handleFirstClick);
+    };
+    window.addEventListener('click', handleFirstClick);
+
+    return () => {
+      clearTimeout(initTimer);
+      if (cancelTimer) clearTimeout(cancelTimer);
+      window.removeEventListener('click', handleFirstClick);
+      if (window.speechSynthesis) {
+        window.speechSynthesis.cancel();
+      }
+    };
+  }, []);
 
   return (
-    <div className="min-h-screen pb-20">
+    <div className="relative w-full h-[calc(100vh-64px)] min-h-[560px] bg-[#030712] overflow-hidden select-none flex items-center justify-center">
       
-      {/* Hero Section */}
-      <section className="relative pt-10 pb-16 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto text-center">
-        {/* Glow backdrop */}
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-indigo-500/15 rounded-full blur-3xl pointer-events-none" />
+      {/* 1. Full-Screen Interactive Magic Rings */}
+      <MagicRings
+        color="#A855F7"
+        colorTwo="#00f2fe"
+        ringCount={6}
+        speed={1.6}
+        attenuation={9}
+        lineThickness={2.2}
+        baseRadius={0.28}
+        radiusStep={0.1}
+        scaleRate={0.1}
+        opacity={1}
+        blur={0}
+        noiseAmount={0.08}
+        rotation={0}
+        ringGap={1.5}
+        fadeIn={0.7}
+        fadeOut={0.5}
+        followMouse={true}
+        mouseInfluence={0.25}
+        hoverScale={1.18}
+        parallax={0.06}
+        clickBurst={true}
+        alphaMode="luminance"
+      />
 
-        <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full glass-panel border border-indigo-500/30 text-indigo-300 text-xs font-semibold uppercase tracking-wider mb-6 shadow-sm">
-          <Sparkles className="w-3.5 h-3.5 text-cyan-400" />
-          KISHORE AI Mentor • Dedicated 1-on-1 AI Video Teacher
-        </div>
+      {/* 2. Left-Bottom Metallic Silver-Black Explore More Button */}
+      <div className="absolute bottom-8 left-8 z-30 sm:bottom-10 sm:left-10">
+        <button
+          onClick={onStartLearning}
+          type="button"
+          className="group relative flex items-center gap-3 px-6 py-3.5 rounded-2xl
+                     bg-gradient-to-b from-[#1c1d21] via-[#0f1013] to-[#08090a]
+                     border border-neutral-500/70 hover:border-neutral-200
+                     text-neutral-200 hover:text-white
+                     shadow-[0_8px_30px_rgba(0,0,0,0.85),inset_0_1px_1px_rgba(255,255,255,0.35),inset_0_-1px_1px_rgba(0,0,0,0.7)]
+                     hover:shadow-[0_0_35px_rgba(255,255,255,0.25),inset_0_1px_2px_rgba(255,255,255,0.6)]
+                     backdrop-blur-xl transition-all duration-300 ease-out hover:scale-105 active:scale-95 cursor-pointer"
+        >
+          <div className="absolute inset-0 rounded-2xl bg-gradient-to-r from-transparent via-white/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
 
-        {/* Mentor Avatar Hero Badge */}
-        <div className="flex flex-col items-center justify-center mb-6">
-          <div className="w-28 h-28 sm:w-32 sm:h-32 rounded-3xl p-1 bg-gradient-to-tr from-cyan-400 via-indigo-500 to-violet-500 shadow-2xl shadow-indigo-500/30 hover:scale-105 transition-transform">
-            <div className="w-full h-full rounded-[22px] overflow-hidden bg-slate-950">
-              <img src="/mentor_avatar.jpg" alt="KISHORE AI Mentor" className="w-full h-full object-cover object-top" />
-            </div>
+          <span className="font-semibold text-sm tracking-wide bg-gradient-to-r from-neutral-100 via-neutral-200 to-neutral-400 bg-clip-text text-transparent group-hover:from-white group-hover:to-neutral-100">
+            Explore More
+          </span>
+
+          <div className="flex items-center justify-center w-7 h-7 rounded-xl bg-neutral-900/80 border border-neutral-700/80 group-hover:border-neutral-400 group-hover:bg-neutral-800 transition-all duration-300 shadow-inner">
+            <svg
+              className="w-4 h-4 text-neutral-300 group-hover:text-white transition-transform duration-300 group-hover:translate-x-0.5 group-hover:-translate-y-0.5"
+              style={{ transform: 'rotate(-30deg)' }}
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2.2"
+              viewBox="0 0 24 24"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 19.5l15-15m0 0H8.25m11.25 0v11.25" />
+            </svg>
           </div>
-          <div className="mt-2.5 flex items-center gap-2 text-xs font-bold text-slate-300">
-            <span>KISHORE AI Mentor</span>
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-            <span className="text-emerald-400 font-semibold">Online & Ready to Elucidate</span>
-          </div>
-        </div>
-
-        <h1 className="text-4xl sm:text-6xl lg:text-7xl font-extrabold tracking-tight text-white max-w-4xl mx-auto leading-tight sm:leading-none">
-          Understand. <br />
-          <span className="text-gradient-cyan">Don't Just Memorize.</span>
-        </h1>
-
-        <p className="mt-6 text-lg sm:text-xl text-slate-300 max-w-2xl mx-auto font-normal leading-relaxed">
-          "It doesn't just answer. It understands how you learn."
-        </p>
-
-        <p className="mt-2 text-xs sm:text-sm text-slate-400 max-w-2xl mx-auto">
-          Upload any document like NotebookLM or enter any topic. Kishore S will appear in a live 1-on-1 video call, speaking humanly, elucidating concepts intuitively, checking your understanding, and adapting to you in real-time.
-        </p>
-
-        {/* Hero CTAs */}
-        <div className="mt-10 flex flex-wrap items-center justify-center gap-4">
-          <button
-            onClick={onStartLearning}
-            className="flex items-center gap-2 px-7 py-3.5 rounded-xl bg-gradient-to-r from-indigo-600 via-indigo-500 to-cyan-500 hover:from-indigo-500 hover:to-cyan-400 text-white font-bold text-sm sm:text-base shadow-xl shadow-indigo-500/25 hover:scale-105 active:scale-95 transition-all"
-          >
-            <Video className="w-4 h-4" />
-            <span>Explore AI Mentor Workspace</span>
-            <ArrowRight className="w-4 h-4" />
-          </button>
-
-          <button
-            onClick={onUploadMaterial}
-            className="flex items-center gap-2 px-7 py-3.5 rounded-xl glass-panel hover:bg-slate-800/80 border border-slate-700/80 text-slate-200 font-semibold text-sm sm:text-base hover:scale-105 active:scale-95 transition-all"
-          >
-            <Upload className="w-4 h-4 text-indigo-400" />
-            <span>Upload Study Material</span>
-          </button>
-
-          <button
-            onClick={onLaunchDemo}
-            className="flex items-center gap-2 px-6 py-3.5 rounded-xl bg-slate-900 border border-amber-500/40 text-amber-300 hover:bg-amber-500/10 font-semibold text-sm sm:text-base hover:scale-105 active:scale-95 transition-all shadow-md shadow-amber-500/10"
-          >
-            <Zap className="w-4 h-4 text-amber-400 fill-current" />
-            <span>⚡ 1-Click Video Demo</span>
-          </button>
-        </div>
-      </section>
-
-      {/* Teaching Loop Workflow Section */}
-      <section className="px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto py-8">
-        <div className="glass-panel rounded-2xl p-6 sm:p-10 border border-slate-800 relative overflow-hidden">
-          <div className="text-center max-w-2xl mx-auto mb-10">
-            <span className="text-xs font-bold text-cyan-400 tracking-wider uppercase">
-              Adaptive Architecture
-            </span>
-            <h2 className="text-2xl sm:text-3xl font-bold text-white mt-1">
-              The Adaptive Pedagogical Loop
-            </h2>
-            <p className="text-sm text-slate-400 mt-2">
-              Every interaction is driven by continuous cognitive evaluation and real-time human mentorship.
-            </p>
-          </div>
-
-          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3 sm:gap-4 relative z-10">
-            {steps.map((s, idx) => (
-              <div
-                key={idx}
-                className="bg-slate-900/90 border border-slate-800 rounded-xl p-4 flex flex-col items-center text-center glass-card-hover group"
-              >
-                <div className="w-10 h-10 rounded-lg bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center mb-3 group-hover:scale-110 group-hover:bg-indigo-500/20 transition-all">
-                  <s.icon className="w-5 h-5 text-indigo-400 group-hover:text-cyan-300" />
-                </div>
-                <div className="text-xs font-bold text-white mb-1">{s.label}</div>
-                <div className="text-[11px] text-slate-400 leading-tight">{s.desc}</div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
+        </button>
+      </div>
 
     </div>
   );

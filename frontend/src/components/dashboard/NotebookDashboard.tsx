@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { Galaxy } from './Galaxy';
 import {
   Upload,
   BookOpen,
@@ -112,8 +113,27 @@ export const NotebookDashboard: React.FC<NotebookDashboardProps> = ({
     localStorage.setItem('kishore_ai_sessions', JSON.stringify(filtered));
   };
 
-  return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+    return (
+    <div className="relative min-h-[calc(100vh-64px)] w-full overflow-hidden bg-[#030712] py-6 select-none">
+      
+      {/* Dynamic Galaxy Starfield Background (Exclusive to Workspace Page) */}
+      <Galaxy
+        starSpeed={0.1}
+        density={2.1}
+        hueShift={130}
+        speed={0.2}
+        glowIntensity={0.35}
+        saturation={0.1}
+        mouseRepulsion={true}
+        repulsionStrength={0.5}
+        twinkleIntensity={0.35}
+        rotationSpeed={0.1}
+        transparent={true}
+      />
+
+      <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+
+      {/* Top Banner */}
       
       {/* Top Banner */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-8">
@@ -310,6 +330,7 @@ export const NotebookDashboard: React.FC<NotebookDashboardProps> = ({
 
         </div>
 
+      </div>
       </div>
 
     </div>
