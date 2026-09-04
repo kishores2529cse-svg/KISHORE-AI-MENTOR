@@ -15,76 +15,87 @@ export const LandingPage: React.FC<LandingPageProps> = ({
   // Cinematic Welcome Voice Note:
   // "Welcome to KISHORE AI MENTOR — The Future of Learning is Here."
   useEffect(() => {
-    let cancelTimer: any = null;
-
     const playCinematicWelcome = () => {
       if (hasSpokenOnThisMountRef.current) return;
       if (!('speechSynthesis' in window)) return;
 
-      const speakWithNaturalPacing = () => {
+      const speak = () => {
         if (hasSpokenOnThisMountRef.current) return;
+
         window.speechSynthesis.cancel();
+        window.speechSynthesis.resume();
 
         const voices = window.speechSynthesis.getVoices();
-        // Target natural American English tone (Christopher / Guy / David / Natural US English)
-        const americanVoice = voices.find(v => 
-          (v.name.toLowerCase().includes('christopher') || 
-           v.name.toLowerCase().includes('guy') || 
-           v.name.toLowerCase().includes('natural') || 
-           v.name.toLowerCase().includes('david') || 
-           v.name.toLowerCase().includes('aria')) && 
-          v.lang.startsWith('en-US')
-        ) || voices.find(v => v.lang === 'en-US') || voices.find(v => v.lang.startsWith('en'));
 
-        // Part 1: "Welcome to KISHORE AI MENTOR"
-        const part1 = new SpeechSynthesisUtterance("Welcome to KISHORE AI MENTOR.");
-        part1.rate = 0.96;
-        part1.pitch = 0.96;
-        if (americanVoice) part1.voice = americanVoice;
+        // Target ONLY confirmed male personas
+        const confirmedMaleNames = [
+          'guy', 'christopher', 'ryan', 'david', 'mark', 'andrew', 'brian',
+          'eric', 'steffan', 'george', 'daniel', 'richard', 'james', 'alex'
+        ];
 
-        // Part 2: "The Future of Learning is Here."
-        const part2 = new SpeechSynthesisUtterance("The future of learning is here.");
-        part2.rate = 0.92;
-        part2.pitch = 0.94;
-        if (americanVoice) part2.voice = americanVoice;
+        // 1. First priority: High-definition Neural/Natural male voice (e.g., Microsoft Guy Natural, Christopher Natural)
+        const premiumMaleVoice = voices.find(v =>
+          v.lang.startsWith('en') &&
+          (v.name.toLowerCase().includes('natural') || v.name.toLowerCase().includes('neural') || v.name.toLowerCase().includes('online')) &&
+          confirmedMaleNames.some(m => v.name.toLowerCase().includes(m))
+        );
 
-        part1.onstart = () => {
+        // 2. Second priority: Any confirmed standard male voice (e.g., Microsoft David, Microsoft Mark, Alex)
+        const standardMaleVoice = voices.find(v =>
+          v.lang.startsWith('en') &&
+          confirmedMaleNames.some(m => v.name.toLowerCase().includes(m))
+        );
+
+        // 3. Fallback: Microsoft David (guaranteed on all Windows machines) or male tagged voice
+        const fallbackMaleVoice = voices.find(v =>
+          v.name.toLowerCase().includes('david') ||
+          v.name.toLowerCase().includes('mark') ||
+          v.name.toLowerCase().includes('male')
+        );
+
+        const braveMaleVoice = premiumMaleVoice || standardMaleVoice || fallbackMaleVoice;
+
+        // Upbeat, brave, and confident male delivery
+        const utterance = new SpeechSynthesisUtterance("Welcome to Kishore AI Mentor! The future of learning is here!");
+        utterance.rate = 1.05;  // Confident, energetic cadence
+        utterance.pitch = 0.98; // Deep, masculine, resonant tone (avoids high-pitched squeakiness)
+        utterance.volume = 1.0;
+
+        if (braveMaleVoice) utterance.voice = braveMaleVoice;
+
+        utterance.onstart = () => {
           hasSpokenOnThisMountRef.current = true;
         };
 
-        // When part 1 finishes, add a smooth 220ms dramatic pause before delivering the tagline
-        part1.onend = () => {
-          cancelTimer = setTimeout(() => {
-            if (window.speechSynthesis) {
-              window.speechSynthesis.speak(part2);
-            }
-          }, 220);
-        };
-
-        window.speechSynthesis.speak(part1);
+        window.speechSynthesis.speak(utterance);
       };
 
-      if (window.speechSynthesis.getVoices().length > 0) {
-        speakWithNaturalPacing();
-      } else {
+      // Speak immediately without waiting
+      speak();
+
+      // Fallback if browser voices load asynchronously and speech hasn't fired yet
+      if (window.speechSynthesis.getVoices().length === 0) {
         window.speechSynthesis.onvoiceschanged = () => {
-          speakWithNaturalPacing();
+          if (!hasSpokenOnThisMountRef.current) {
+            speak();
+          }
         };
       }
     };
 
-    // Trigger shortly after landing page loads + fallback on first interaction
-    const initTimer = setTimeout(playCinematicWelcome, 450);
-    const handleFirstClick = () => {
+    // Trigger immediately upon landing page mount (0ms delay)
+    playCinematicWelcome();
+
+    // Also trigger on earliest interaction if browser autoplay blocked zero-gesture speech
+    const handleImmediateInteraction = () => {
       playCinematicWelcome();
-      window.removeEventListener('click', handleFirstClick);
     };
-    window.addEventListener('click', handleFirstClick);
+    window.addEventListener('pointerdown', handleImmediateInteraction, { once: true });
+    window.addEventListener('keydown', handleImmediateInteraction, { once: true });
 
     return () => {
-      clearTimeout(initTimer);
-      if (cancelTimer) clearTimeout(cancelTimer);
-      window.removeEventListener('click', handleFirstClick);
+      window.removeEventListener('pointerdown', handleImmediateInteraction);
+      window.removeEventListener('keydown', handleImmediateInteraction);
       if (window.speechSynthesis) {
         window.speechSynthesis.cancel();
       }
@@ -93,7 +104,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
 
   return (
     <div className="relative w-full h-[calc(100vh-64px)] min-h-[560px] bg-[#030712] overflow-hidden select-none flex items-center justify-center">
-      
+
       {/* 1. Full-Screen Interactive Magic Rings */}
       <MagicRings
         color="#A855F7"
