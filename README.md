@@ -1,50 +1,56 @@
 # KISHORE S AI Mentor (AdaptIQ)
 
-[![Live Demo](https://img.shields.io/badge/Live_App-Vercel-black?style=for-the-badge&logo=vercel)](https://kishore-ai-mentor.vercel.app)
+[![Live App](https://img.shields.io/badge/Live_App-Vercel-black?style=for-the-badge&logo=vercel)](https://kishore-ai-mentor.vercel.app)
 [![API Status](https://img.shields.io/badge/API-Render_Live-46E3B7?style=for-the-badge&logo=render)](https://kishore-ai-mentor-backend.onrender.com)
 [![FastAPI](https://img.shields.io/badge/FastAPI-Python_3.12-009688?style=for-the-badge&logo=fastapi)](https://fastapi.tiangolo.com)
 [![React 19](https://img.shields.io/badge/React_19-TypeScript-61DAFB?style=for-the-badge&logo=react)](https://react.dev)
 
 > **"Understand. Don't Just Memorize."**  
-> An autonomous adaptive mentor that detects foundational student misconceptions and dynamically pivots teaching strategies in real time.
+> An autonomous pedagogical state machine that models learner cognition, pinpoints foundational misconceptions, and dynamically pivots teaching strategies in real time.
 
 ---
 
-## ⚡ 30-Second Judge Demo (The "Aha!" Moment)
-1. Open **[Live Web App](https://kishore-ai-mentor.vercel.app)** ➔ Click **"⚡ 1-Click Demo"** ➔ **"Enter AI Classroom"**.
-2. When asked about Resistance vs Current, intentionally submit: `Current increases`.
-3. **Watch the AI adapt:**
-   - ⚠️ **Misconception Caught:** Inverse relationship confused.
-   - 🔄 **Strategy Shifted:** Formulaic lecture ➔ Interactive hydraulic water-pipe pinch analogy.
-   - 📈 **Mastery Jump:** Retest correct answer ➔ Knowledge score surges **42% ➔ 91%**.
+## ⚡ 30-Second Evaluation Flow (The "Aha!" Moment)
+1. **Launch Demo:** Open **[Live Web App](https://kishore-ai-mentor.vercel.app)** ➔ Click **"⚡ 1-Click Demo"** ➔ **"Enter AI Classroom"** *(or upload any PDF/DOCX/PPTX)*.
+2. **Trigger Cognitive Pivot:** When the teacher asks the diagnostic question on Resistance vs. Current, submit:
+   ```text
+   Current increases
+   ```
+3. **Observe Autonomous Adaptation:**
+   - ⚠️ **Misconception Isolated:** Identifies confusion between direct and inverse proportionality.
+   - 🔄 **Pedagogy Shift:** Automatically transitions from *Algebraic Lecture* $\rightarrow$ *Interactive Hydraulic Pinch Analogy*.
+   - 📈 **Mastery Verified:** Re-assess on the visual simulation $\rightarrow$ Knowledge score jumps **42% ➔ 91%**.
 
 ---
 
-## 🧠 Why AdaptIQ Wins (Beyond Chatbots)
-* **Active Cognitive Modeling:** Dissects *why* mistakes happen instead of just saying "incorrect".
-* **Interactive Visual Sandboxes:** Live circuit sliders, fluid resistance simulations, and rendered KaTeX math.
-* **Multimodal Mentor:** Real-time speech synthesis + expressive 3D/canvas neural teacher persona.
-* **Document RAG Ingestion:** Instant curriculum generation from uploaded `PDF`, `DOCX`, or `PPTX` files.
-* **Multilingual:** Seamless, mid-lesson switching across **English, Tamil, and Hindi**.
+## 🧠 Architectural Differentiators (Beyond Chatbots)
+* **Closed-Loop Cognitive State Machine:** Replaces passive Q&A with continuous `Diagnose ➔ Evaluate ➔ Pivot ➔ Verify` feedback loops.
+* **Reactive Visual Sandboxes:** Programmatic generation of interactive circuit sliders, hydraulic flow models, and KaTeX mathematical formulas.
+* **Multimodal Pedagogical Presence:** Zero-latency Web Speech TTS paired with an expressive WebGL canvas avatar mirroring mentor emotions.
+* **Zero-Hallucination Document RAG:** Ingests, chunks, and semantically grounds lessons strictly on uploaded user materials (`PDF`, `DOCX`, `PPTX`).
+* **Stateful Multilingual Continuity:** Seamless mid-lesson switching across **English, Tamil, and Hindi** with 100% learning-memory retention.
 
 ---
 
-## 🛠️ Stack in Brief
-* **Frontend:** React 19, TypeScript, Vite, Tailwind CSS, OGL WebGL, Framer Motion.
-* **Backend:** Python 3.12, FastAPI, Pydantic v2, PyPDF, Faster-Whisper.
-* **AI:** Google Gemini 2.5/3.7 Flash & OpenRouter (LLaMA 3.3 70B) with zero-cost fallback simulation.
+## 🛠️ Production Stack
+
+| Layer | Technologies |
+| :--- | :--- |
+| **Frontend** | React 19, TypeScript, Vite, Tailwind CSS 4, OGL WebGL, Framer Motion, KaTeX |
+| **Backend** | Python 3.12, FastAPI, Pydantic v2, PyPDF, python-docx, Faster-Whisper |
+| **Cognitive Engine** | Dual-model orchestration (Gemini 2.5/3.7 Flash & LLaMA 3.3 70B via OpenRouter) with zero-cost fallback |
 
 ---
 
-## 🚀 Local Setup
+## 🚀 Quick Start
 
 ```bash
-# Backend
+# Backend (FastAPI)
 cd backend && pip install -r requirements.txt && uvicorn app.main:app --port 8000 --reload
 
-# Frontend
+# Frontend (React 19)
 cd frontend && npm install && npm run dev
 ```
 
 ---
-[System Architecture](docs/architecture.md) • [AI Agents](docs/ai-architecture.md) • [Demo Script](docs/demo-script.md)
+[Architecture Specs](docs/architecture.md) • [Agent Cognitive Pipeline](docs/ai-architecture.md) • [Evaluator Demo Script](docs/demo-script.md)
