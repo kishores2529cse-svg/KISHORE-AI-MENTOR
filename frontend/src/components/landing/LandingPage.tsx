@@ -56,7 +56,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
         const braveMaleVoice = premiumMaleVoice || standardMaleVoice || fallbackMaleVoice;
 
         // Upbeat, brave, and confident male delivery
-        const utterance = new SpeechSynthesisUtterance("Welcome to Kishore AI Mentor! The future of learning is here!");
+        const utterance = new SpeechSynthesisUtterance("Welcome to KISHOR AI Mentor! The future of learning is here!");
         utterance.rate = 1.05;  // Confident, energetic cadence
         utterance.pitch = 0.98; // Deep, masculine, resonant tone (avoids high-pitched squeakiness)
         utterance.volume = 1.0;
