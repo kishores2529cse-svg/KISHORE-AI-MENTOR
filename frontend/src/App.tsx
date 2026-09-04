@@ -10,6 +10,7 @@ import { AssessmentPage } from './components/assessment/AssessmentPage';
 import { ProgressPage } from './components/progress/ProgressPage';
 import { LessonPlan, UploadResponse, ConversationSession } from './types';
 import { api } from './services/api';
+import GlowCursor from './components/ui/GlowCursor';
 
 export function App() {
   const [activeTab, setActiveTab] = useState<string>('landing');
@@ -67,7 +68,29 @@ export function App() {
   };
 
   return (
-    <div className="min-h-screen bg-[#070b14] text-slate-100 flex flex-col selection:bg-indigo-500 selection:text-white">
+    <div className="min-h-screen bg-[#070b14] text-slate-100 flex flex-col selection:bg-indigo-500 selection:text-white relative">
+      <GlowCursor
+        color="#67E8F9"
+        secondaryColor="#A78BFA"
+        trailLength={40}
+        trailWidth={8}
+        trailTaper={0.8}
+        followSpeed={0.16}
+        glowIntensity={1.9}
+        glowSpread={1.2}
+        hotspot={0.65}
+        brightness={1.25}
+        opacity={1}
+        pulseSpeed={1.1}
+        noiseStrength={0.035}
+        idleFade
+        idleTimeout={700}
+        fadeDuration={900}
+        blendMode="normal"
+        className="fixed inset-0 pointer-events-none z-50"
+        style={{}}
+        children={null}
+      />
       
       {/* Navigation Header */}
       <Navbar
